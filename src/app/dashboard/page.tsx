@@ -1,15 +1,18 @@
+  import DashboardClient from "./index";
+
 export default function DashboardPage() {
+  
+  const user = { name: "Baseerah" }; 
+
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center">
-      <h1 className="text-4xl font-bold text-blue-600 mb-4">
-        Welcome to SkillSync Dashboard
-      </h1>
-      <p className="text-gray-600 mb-8">
-        TailwindCSS is successfully configured 🎉
-      </p>
-      <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow">
-        Explore Skills
-      </button>
+    <main className="min-h-screen p-8 space-y-6 bg-gray-50">
+      <h1 className="text-3xl font-bold">Welcome, {user.name} 👋</h1>
+      
+      <DashboardClient />
     </main>
-  )
+  );
 }
+
+    
+  
+
