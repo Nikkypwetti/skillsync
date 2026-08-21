@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SkillSync — Developer Skill Tracking Product Concept
 
-## Getting Started
+A work-in-progress Next.js project exploring a product for tracking technical skills, learning progress and developer portfolio activity.
 
-First, run the development server:
+## Project Status
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+**Work in progress / learning project.**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+SkillSync is currently a product prototype rather than a completed production application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The repository contains the initial application structure and interface, while several planned features—including persistent skill tracking, GitHub synchronization and personalized insights—are still under development.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Product Idea
 
-## Learn More
+SkillSync explores how developers could manage their learning journey from one place.
 
-To learn more about Next.js, take a look at the following resources:
+The product concept includes:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- technical skill tracking
+- learning progress visualization
+- developer dashboards
+- GitHub activity integration
+- public developer portfolio pages
+- personalized development insights
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Current Implementation
 
-## Deploy on Vercel
+The repository currently includes:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Next.js landing page
+- App Router structure
+- dashboard route
+- dynamic portfolio route structure
+- GitHub API route scaffold
+- skills API route scaffold
+- dashboard component structure
+- deployment workflow configuration
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Current Architecture
+
+    User
+      │
+      ▼
+    Next.js Application
+      │
+      ├── Landing Page
+      │
+      ├── Dashboard
+      │
+      ├── Portfolio Route
+      │
+      └── API Route Scaffolds
+             ├── GitHub
+             └── Skills
+
+## Tech Stack
+
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS
+- GitHub Actions
+
+## Repository Structure
+
+    src/
+    ├── app/
+    │   ├── api/
+    │   │   ├── github/
+    │   │   └── skills/
+    │   ├── dashboard/
+    │   ├── portfolio/
+    │   │   └── [username]/
+    │   └── page.tsx
+    └── components/
+
+## Planned Development
+
+Future iterations are intended to explore:
+
+- persistent skill data
+- skill creation and editing
+- progress visualization
+- GitHub repository/activity synchronization
+- richer portfolio profiles
+- authentication
+- personalized learning insights
+
+These features should be treated as planned functionality until their implementation is complete.
+
+## What This Project Demonstrates
+
+Even in its current prototype state, the project shows experience with:
+
+- Next.js App Router structure
+- TypeScript
+- React client components
+- dynamic routes
+- API route organization
+- frontend product planning
+- GitHub Actions workflow setup
+- iterative product development
+
+## Why I Keep This Repository Public
+
+This repository documents part of my software-development learning and product experimentation.
+
+For completed Operations, RevOps, CRM and Business Systems case studies, see my professional portfolio:
+
+https://nikkytechies-portfolio.vercel.app/
+
+## Connect
+
+- GitHub: https://github.com/Nikkypwetti
+- LinkedIn: https://www.linkedin.com/in/ganiyu-basirat-308ab9403
+- Portfolio: https://nikkytechies-portfolio.vercel.app/
