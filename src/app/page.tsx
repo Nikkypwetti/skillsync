@@ -25,7 +25,7 @@ export default function HomePage() {
             Track progress, showcase projects, and grow faster with personalized insights from your coding journey.
           </p>
           <Link href="/dashboard" className="inline-block px-6 py-3 text-white transition bg-indigo-600 rounded-xl hover:bg-indigo-700">
-            Launch Dashboard
+            Explore Prototype
           </Link>
         </div>
         <Image
@@ -37,21 +37,21 @@ export default function HomePage() {
 
       {/* Features Section */}
       <section id="features" className="px-8 py-16 bg-white md:px-16 lg:px-24">
-        <h3 className="mb-12 text-3xl font-bold text-center">Why Choose SkillSync?</h3>
+        <h3 className="mb-12 text-3xl font-bold text-center">Product Direction</h3>
         <div className="grid gap-8 md:grid-cols-3">
           {[
             {
-              title: "Skill Tracking",
-              desc: "Monitor your learning curve and progress over time.",
-            },
-            {
-              title: "GitHub Integration",
-              desc: "Automatically sync your repositories and activity.",
-            },
-            {
-              title: "Personalized Insights",
-              desc: "Get AI-driven feedback to improve your skills faster.",
-            },
+  title: "Skill Tracking Concept",
+  desc: "Explore a structured approach to tracking technical learning progress.",
+},
+{
+  title: "GitHub Integration — Planned",
+  desc: "Planned integration for connecting repository and developer activity.",
+},
+{
+  title: "Personalized Insights — Planned",
+  desc: "Planned insights for helping developers understand their learning progress.",
+},
           ].map((item, i) => (
             <div key={i} className="p-6 transition shadow-sm bg-indigo-50 rounded-2xl hover:shadow-md">
               <h4 className="mb-2 text-xl font-semibold">{item.title}</h4>
