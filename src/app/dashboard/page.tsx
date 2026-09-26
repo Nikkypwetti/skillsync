@@ -10,39 +10,70 @@ import SkillForm from "./components/SkillForm";
 import ProgressChart from "./components/ProgressChart";
 import type { Skill } from "@/types";
 
+type DashboardData = {
+  skills: Skill[];
+  name: string;
+  error: string | null;
+};
+
+async function fetchDashboardData(): Promise<DashboardData> {
+  const { data: auth } = await supabase.auth.getUser();
+
+  if (!auth.user) {
+    return {
+      skills: [],
+      name: "there",
+      error: null,
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("skills")
+    .select("id,user_id,name,category,level,created_at")
+    .eq("user_id", auth.user.id)
+    .order("created_at", { ascending: false });
+
+  return {
+    skills: (data || []) as Skill[],
+    name:
+      auth.user.user_metadata?.full_name ||
+      auth.user.email?.split("@")[0] ||
+      "there",
+    error: error?.message ?? null,
+  };
+}
+
 export default function DashboardPage() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [name, setName] = useState("there");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    const { data: auth } = await supabase.auth.getUser();
-
-    if (!auth.user) {
-      setLoading(false);
-      return;
-    }
-
-    const { data, error: skillsError } = await supabase
-      .from("skills")
-      .select("id,user_id,name,category,level,created_at")
-      .eq("user_id", auth.user.id)
-      .order("created_at", { ascending: false });
-
-    setName(
-      auth.user.user_metadata?.full_name ||
-        auth.user.email?.split("@")[0] ||
-        "there"
-    );
-    setError(skillsError?.message ?? null);
-    setSkills((data || []) as Skill[]);
+  const applyDashboardData = useCallback((result: DashboardData) => {
+    setSkills(result.skills);
+    setName(result.name);
+    setError(result.error);
     setLoading(false);
   }, []);
 
+  const refresh = useCallback(async () => {
+    const result = await fetchDashboardData();
+    applyDashboardData(result);
+  }, [applyDashboardData]);
+
   useEffect(() => {
-    void load();
-  }, [load]);
+    let active = true;
+
+    fetchDashboardData().then((result) => {
+      if (active) {
+        applyDashboardData(result);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [applyDashboardData]);
 
   const stats = useMemo(() => {
     const total = skills.length;
@@ -103,7 +134,7 @@ export default function DashboardPage() {
                 later.
               </p>
             </div>
-            <SkillForm onCreated={load} />
+            <SkillForm onCreated={refresh} />
           </div>
 
           <ProgressChart skills={skills} />
@@ -143,7 +174,7 @@ export default function DashboardPage() {
                 <SkillCard
                   key={skill.id}
                   skill={skill}
-                  onChanged={load}
+                  onChanged={refresh}
                 />
               ))}
             </div>
