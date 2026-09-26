@@ -35,7 +35,7 @@ export default function DashboardPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {\n    void load();\n  }, [load]);
 
   const stats = useMemo(() => {
     const total = skills.length;
