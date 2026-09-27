@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import type { Project, ProjectSkill } from "@/types";
+import type { Project, ProjectAsset, ProjectSkill } from "@/types";
 
 const trackThemes = [
   {
@@ -74,11 +74,15 @@ export default function ProjectCard({
   project,
   skills,
   onChanged,
+  onEdit,
+  assets = [],
   index = 0,
 }: {
   project: Project;
   skills: ProjectSkill[];
   onChanged: () => void | Promise<void>;
+  onEdit: (project: Project) => void;
+  assets?: ProjectAsset[];
   index?: number;
 }) {
   const [busy, setBusy] = useState(false);
@@ -153,6 +157,13 @@ export default function ProjectCard({
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onEdit(project)}
+              className="rounded-lg border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-xs font-black text-indigo-700 hover:bg-indigo-100"
+            >
+              Edit
+            </button>
             <span
               className={
                 project.public
@@ -207,6 +218,17 @@ export default function ProjectCard({
             </div>
             <p className="mt-2 text-sm leading-6 text-slate-700">
               {project.outcome}
+            </p>
+          </div>
+        ) : null}
+
+        {assets.length ? (
+          <div className="mt-5 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-700">
+              Evidence files
+            </p>
+            <p className="mt-2 text-sm font-semibold text-slate-700">
+              {assets.length} uploaded file{assets.length === 1 ? "" : "s"}
             </p>
           </div>
         ) : null}
