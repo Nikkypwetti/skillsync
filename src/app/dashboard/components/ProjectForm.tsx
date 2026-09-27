@@ -76,7 +76,18 @@ export default function ProjectForm({
       setIsPublic(project.public);
       setFeatured(project.featured);
     } else {
-      resetFields();
+      setTitle("");
+      setTrack("");
+      setRole("");
+      setChallenge("");
+      setContribution("");
+      setOutcome("");
+      setTools("");
+      setRepo("");
+      setLive("");
+      setEvidence("");
+      setIsPublic(true);
+      setFeatured(false);
     }
   }, [project, existingAssets]);
 
