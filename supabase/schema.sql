@@ -259,6 +259,10 @@ declare
 begin
   delete from public.project_skills where project_id = new.id;
 
+  if coalesce(array_length(new.tools, 1), 0) = 0 then
+    return new;
+  end if;
+
   project_text := lower(
     coalesce(new.title,'') || ' ' || coalesce(new.challenge,'') || ' ' ||
     coalesce(new.contribution,'') || ' ' || coalesce(new.outcome,'') || ' ' ||
@@ -283,7 +287,7 @@ begin
 
   insert into public.project_skills(project_id,user_id,name,category,evidence_score,evidence_level,rationale)
   select new.id,new.user_id,x.name,x.category,base_score,level_name,
-    'Derived from project responsibilities, tools, outcomes, and linked evidence.'
+    'Derived from the completed project description, tools used, outcomes, and linked evidence.'
   from (
     values
       ('Workflow Automation','Automation',array['workflow','automation','webhook']),
