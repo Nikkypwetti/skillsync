@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
+  --background: #f7f7fb;
   --foreground: #0f172a;
 }
 
@@ -18,7 +18,9 @@ html {
 
 body {
   margin: 0;
-  background: var(--background);
+  background:
+    radial-gradient(circle at top left, rgba(139,92,246,.06), transparent 34rem),
+    var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   text-rendering: optimizeLegibility;
@@ -27,11 +29,112 @@ body {
 button,
 a,
 input,
-select {
+select,
+textarea {
   -webkit-tap-highlight-color: transparent;
 }
 
+button,
+a {
+  transition: all 160ms ease;
+}
+
 ::selection {
-  background: #c7d2fe;
-  color: #1e1b4b;
+  background: #ddd6fe;
+  color: #2e1065;
+}
+
+.field {
+  margin-top: .5rem;
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  padding: .8rem 1rem;
+  font-weight: 400;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.field::placeholder {
+  color: #94a3b8;
+}
+
+.field:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 4px rgba(139,92,246,.10);
+}
+
+.form-label {
+  display: block;
+  font-size: .875rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.eyebrow {
+  font-size: .72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .2em;
+  color: #7c3aed;
+}
+
+.tab-active,
+.tab-idle {
+  border-radius: .8rem;
+  padding: .65rem 1rem;
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.tab-active {
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(15,23,42,.15);
+}
+
+.tab-idle {
+  color: #64748b;
+}
+
+.tab-idle:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.empty-card {
+  border: 1px dashed #cbd5e1;
+  border-radius: 2rem;
+  background: rgba(255,255,255,.85);
+  padding: 3rem 2rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.badge-dark {
+  border-radius: 999px;
+  background: #0f172a;
+  padding: .3rem .7rem;
+  font-size: .68rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.badge-light {
+  border-radius: 999px;
+  background: #f1f5f9;
+  padding: .3rem .7rem;
+  font-size: .68rem;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.link-soft {
+  color: #475569;
+}
+
+.link-soft:hover {
+  color: #7c3aed;
 }
