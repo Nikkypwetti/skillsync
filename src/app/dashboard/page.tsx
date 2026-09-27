@@ -91,9 +91,12 @@ export default function DashboardPage() {
     <AuthGuard>
       <Navbar />
       <main className="relative min-h-screen overflow-hidden bg-[#f7f8fc]">
-        <div className="pointer-events-none absolute left-[-8rem] top-24 h-80 w-80 rounded-full bg-indigo-200/40 blur-3xl" />\n        <div className="pointer-events-none absolute right-[-6rem] top-[28rem] h-96 w-96 rounded-full bg-violet-200/35 blur-3xl" />\n        <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="pointer-events-none absolute left-[-8rem] top-24 h-80 w-80 rounded-full bg-indigo-200/40 blur-3xl" />
+        <div className="pointer-events-none absolute right-[-6rem] top-[28rem] h-96 w-96 rounded-full bg-violet-200/35 blur-3xl" />
+        <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <section className="motion-fade-up relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-indigo-950 via-slate-950 to-violet-900 p-7 text-white shadow-2xl shadow-indigo-200/30 sm:p-10">
-            <div className="motion-float-slow absolute -right-20 -top-24 h-64 w-64 rounded-full bg-fuchsia-400/25 blur-3xl" />\n            <div className="motion-float-delayed absolute -bottom-24 left-[38%] h-56 w-56 rounded-full bg-cyan-400/15 blur-3xl" />
+            <div className="motion-float-slow absolute -right-20 -top-24 h-64 w-64 rounded-full bg-fuchsia-400/25 blur-3xl" />
+            <div className="motion-float-delayed absolute -bottom-24 left-[38%] h-56 w-56 rounded-full bg-cyan-400/15 blur-3xl" />
             <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
               <div>
                 <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.2em] text-violet-200">Proof-based career portfolio</span>
