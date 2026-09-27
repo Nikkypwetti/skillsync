@@ -1,47 +1,163 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import AuthCard from "@/components/AuthCard";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function SignupPage() {
-  const [form, setForm] = useState({ fullName: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+  });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [existingAccount, setExistingAccount] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setMessage(null);
+    setExistingAccount(false);
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
-      email: form.email,
+    const email = form.email.trim().toLowerCase();
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
       password: form.password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: { full_name: form.fullName },
+        data: { full_name: form.fullName.trim() },
       },
     });
 
     setLoading(false);
-    if (error) {
-      setError(error.message);
+
+    const alreadyRegistered =
+      signUpError?.message.toLowerCase().includes("already registered") ||
+      (data.user !== null &&
+        Array.isArray(data.user.identities) &&
+        data.user.identities.length === 0);
+
+    if (alreadyRegistered) {
+      const notice =
+        "An account with this email already exists. Please sign in instead, or reset your password if you cannot remember it.";
+
+      setExistingAccount(true);
+      setError(notice);
+      window.alert(notice);
       return;
     }
-    setMessage("Account created. Check your email and confirm your address to continue.");
+
+    if (signUpError) {
+      setError(signUpError.message);
+      return;
+    }
+
+    setMessage(
+      "Account created. Check your inbox and spam folder, then confirm your email to continue."
+    );
   }
 
   return (
-    <AuthCard title="Create your account" subtitle="Track skills, connect proof, and publish a portfolio." footerText="Already have an account?" footerHref="/auth/login" footerLabel="Sign in">
+    <AuthCard
+      title="Create your account"
+      subtitle="Turn real projects into evidence-backed skills and a professional portfolio."
+      footerText="Already have an account?"
+      footerHref="/auth/login"
+      footerLabel="Sign in"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error ? <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
-        {message ? <div className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div> : null}
-        <input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="Full name" required className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none ring-indigo-500 focus:ring-2" />
-        <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" required className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none ring-indigo-500 focus:ring-2" />
-        <input type="password" minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Minimum 8 characters" required className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none ring-indigo-500 focus:ring-2" />
-        <button disabled={loading} className="w-full rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">{loading ? "Creating account…" : "Create account"}</button>
+        {error ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"
+          >
+            <p className="font-semibold">{error}</p>
+
+            {existingAccount ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href="/auth/login"
+                  className="rounded-lg bg-rose-700 px-3 py-2 text-xs font-bold text-white hover:bg-rose-800"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/auth/reset-password"
+                  className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                >
+                  Reset password
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {message ? (
+          <div
+            role="status"
+            className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700"
+          >
+            {message}
+          </div>
+        ) : null}
+
+        <label className="form-label">
+          Full name
+          <input
+            value={form.fullName}
+            onChange={(e) =>
+              setForm({ ...form, fullName: e.target.value })
+            }
+            placeholder="Your full name"
+            autoComplete="name"
+            required
+            className="field"
+          />
+        </label>
+
+        <label className="form-label">
+          Email address
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e) =>
+              setForm({ ...form, email: e.target.value })
+            }
+            placeholder="you@example.com"
+            autoComplete="email"
+            required
+            className="field"
+          />
+        </label>
+
+        <label className="form-label">
+          Password
+          <input
+            type="password"
+            minLength={8}
+            value={form.password}
+            onChange={(e) =>
+              setForm({ ...form, password: e.target.value })
+            }
+            placeholder="Minimum 8 characters"
+            autoComplete="new-password"
+            required
+            className="field"
+          />
+        </label>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? "Checking account…" : "Create account"}
+        </button>
       </form>
     </AuthCard>
   );
