@@ -137,6 +137,7 @@ export default function DashboardPage() {
                   <p className="mt-3 text-sm leading-6 text-slate-500">{editingProject ? "Update the evidence, links, files, visibility, or featured status. SkillSync will recalculate the demonstrated capabilities when you save." : "Development, automation, RevOps, virtual assistant work, customer support, operations, research, data, content, and other project-based work all belong here."}</p>
                 </div>
                 <ProjectForm
+                  key={editingProject ? "edit-" + editingProject.id : "new-project"}
                   project={editingProject}
                   existingAssets={
                     editingProject
