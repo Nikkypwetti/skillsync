@@ -50,6 +50,18 @@ create table if not exists public.project_skills (
   unique(project_id,name)
 );
 
+create table if not exists public.project_assets (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.projects(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  storage_path text not null unique,
+  public_url text not null,
+  file_name text not null,
+  file_type text,
+  file_size bigint,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.certificates (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -64,10 +76,13 @@ create table if not exists public.certificates (
 create index if not exists projects_user_id_idx on public.projects(user_id);
 create index if not exists project_skills_user_id_idx on public.project_skills(user_id);
 create index if not exists project_skills_project_id_idx on public.project_skills(project_id);
+create index if not exists project_assets_project_id_idx on public.project_assets(project_id);
+create index if not exists project_assets_user_id_idx on public.project_assets(user_id);
 
 alter table public.profiles enable row level security;
 alter table public.projects enable row level security;
 alter table public.project_skills enable row level security;
+alter table public.project_assets enable row level security;
 alter table public.certificates enable row level security;
 
 drop policy if exists "Profiles are publicly readable" on public.profiles;
@@ -106,6 +121,93 @@ create policy "Users can update own project skill evidence" on public.project_sk
 
 drop policy if exists "Users can delete own project skill evidence" on public.project_skills;
 create policy "Users can delete own project skill evidence" on public.project_skills for delete using (auth.uid() = user_id);
+
+drop policy if exists "Users can view project assets" on public.project_assets;
+create policy "Users can view project assets" on public.project_assets for select using (
+  auth.uid() = user_id or exists (
+    select 1 from public.projects p where p.id = project_id and p.public = true
+  )
+);
+
+drop policy if exists "Users can insert own project assets" on public.project_assets;
+create policy "Users can insert own project assets" on public.project_assets for insert with check (
+  auth.uid() = user_id and exists (
+    select 1 from public.projects p where p.id = project_id and p.user_id = auth.uid()
+  )
+);
+
+drop policy if exists "Users can delete own project assets" on public.project_assets;
+create policy "Users can delete own project assets" on public.project_assets for delete using (auth.uid() = user_id);
+
+insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
+values (
+  'project-evidence',
+  'project-evidence',
+  false,
+  10485760,
+  array['image/png','image/jpeg','image/webp','image/gif','application/pdf']
+)
+on conflict (id) do update set
+  public=excluded.public,
+  file_size_limit=excluded.file_size_limit,
+  allowed_mime_types=excluded.allowed_mime_types;
+
+drop policy if exists "Users can upload project evidence" on storage.objects;
+create policy "Users can upload project evidence"
+on storage.objects for insert to authenticated
+with check (
+  bucket_id='project-evidence'
+  and (storage.foldername(name))[1]=auth.uid()::text
+);
+
+drop policy if exists "Users can view own project evidence objects" on storage.objects;
+create policy "Users can view own project evidence objects"
+on storage.objects for select to authenticated
+using (
+  bucket_id='project-evidence'
+  and (
+    (storage.foldername(name))[1]=auth.uid()::text
+    or exists (
+      select 1
+      from public.project_assets pa
+      join public.projects p on p.id=pa.project_id
+      where pa.storage_path=storage.objects.name and p.public=true
+    )
+  )
+);
+
+drop policy if exists "Public can view published project evidence" on storage.objects;
+create policy "Public can view published project evidence"
+on storage.objects for select to anon
+using (
+  bucket_id='project-evidence'
+  and exists (
+    select 1
+    from public.project_assets pa
+    join public.projects p on p.id=pa.project_id
+    where pa.storage_path=storage.objects.name and p.public=true
+  )
+);
+
+drop policy if exists "Users can update project evidence" on storage.objects;
+create policy "Users can update project evidence"
+on storage.objects for update to authenticated
+using (
+  bucket_id='project-evidence'
+  and (storage.foldername(name))[1]=auth.uid()::text
+)
+with check (
+  bucket_id='project-evidence'
+  and (storage.foldername(name))[1]=auth.uid()::text
+);
+
+drop policy if exists "Users can delete project evidence" on storage.objects;
+create policy "Users can delete project evidence"
+on storage.objects for delete to authenticated
+using (
+  bucket_id='project-evidence'
+  and (storage.foldername(name))[1]=auth.uid()::text
+);
 
 drop policy if exists "Users can view own and public certificates" on public.certificates;
 create policy "Users can view own and public certificates" on public.certificates for select using (
