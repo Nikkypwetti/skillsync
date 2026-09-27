@@ -1,116 +1,84 @@
-# SkillSync — Developer Skill Tracking Product Concept
+# SkillSync
 
-A work-in-progress Next.js project exploring a product for tracking technical skills, learning progress and developer portfolio activity.
+SkillSync is a full-stack developer skill tracker and public portfolio generator for early-career engineers.
 
-## Project Status
+## What it solves
 
-**Work in progress / learning project.**
+Learning evidence is usually scattered across courses, notes, GitHub repositories and side projects. SkillSync gives users one place to track skill progress and turn that progress into a portfolio that recruiters can understand.
 
-SkillSync is currently a product prototype rather than a completed production application.
+## Production MVP
 
-The repository contains the initial application structure and interface, while several planned features—including persistent skill tracking, GitHub synchronization and personalized insights—are still under development.
+- Email/password authentication with email confirmation
+- Password reset flow
+- Protected dashboard
+- Skill create/update/delete
+- Progress analytics
+- Public portfolio route
+- GitHub repositories API proxy
+- Supabase PostgreSQL persistence
+- Responsive Tailwind UI
+- CI workflow for lint, typecheck and build
 
-## Product Idea
+## Stack
 
-SkillSync explores how developers could manage their learning journey from one place.
+- Next.js 16 / React 19 / TypeScript
+- Tailwind CSS 4
+- Supabase Auth + PostgreSQL
+- Recharts
+- Vercel-ready deployment
 
-The product concept includes:
+## Environment variables
 
-- technical skill tracking
-- learning progress visualization
-- developer dashboards
-- GitHub activity integration
-- public developer portfolio pages
-- personalized development insights
+Copy `.env.example` to `.env.local`:
 
-## Current Implementation
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+GITHUB_TOKEN=
+```
 
-The repository currently includes:
+`GITHUB_TOKEN` is optional for local development but improves GitHub API rate limits.
 
-- Next.js landing page
-- App Router structure
-- dashboard route
-- dynamic portfolio route structure
-- GitHub API route scaffold
-- skills API route scaffold
-- dashboard component structure
-- deployment workflow configuration
+## Supabase schema
 
-## Current Architecture
+Run `supabase/schema.sql` in the Supabase SQL editor. Row Level Security is required for user-owned data.
 
-    User
-      │
-      ▼
-    Next.js Application
-      │
-      ├── Landing Page
-      │
-      ├── Dashboard
-      │
-      ├── Portfolio Route
-      │
-      └── API Route Scaffolds
-             ├── GitHub
-             └── Skills
+In Supabase Authentication → URL Configuration add:
 
-## Tech Stack
+- Local: `http://localhost:3000/auth/callback`
+- Production: `https://YOUR_DOMAIN/auth/callback`
+- Password update: `https://YOUR_DOMAIN/auth/update-password`
 
-- Next.js 16
-- React 19
-- TypeScript
-- Tailwind CSS
-- GitHub Actions
+## Run locally
 
-## Repository Structure
+```bash
+npm ci
+npm run dev
+```
 
-    src/
-    ├── app/
-    │   ├── api/
-    │   │   ├── github/
-    │   │   └── skills/
-    │   ├── dashboard/
-    │   ├── portfolio/
-    │   │   └── [username]/
-    │   └── page.tsx
-    └── components/
+Then open http://localhost:3000.
 
-## Planned Development
+## Quality checks
 
-Future iterations are intended to explore:
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
 
-- persistent skill data
-- skill creation and editing
-- progress visualization
-- GitHub repository/activity synchronization
-- richer portfolio profiles
-- authentication
-- personalized learning insights
+## Deployment
 
-These features should be treated as planned functionality until their implementation is complete.
+Connect the repository to Vercel and add the environment variables above. Configure the production URL in Supabase before testing email confirmation and password reset.
 
-## What This Project Demonstrates
+## Production checklist
 
-Even in its current prototype state, the project shows experience with:
-
-- Next.js App Router structure
-- TypeScript
-- React client components
-- dynamic routes
-- API route organization
-- frontend product planning
-- GitHub Actions workflow setup
-- iterative product development
-
-## Why I Keep This Repository Public
-
-This repository documents part of my software-development learning and product experimentation.
-
-For completed Operations, RevOps, CRM and Business Systems case studies, see my professional portfolio:
-
-https://nikkytechies-portfolio.vercel.app/
-
-## Connect
-
-- GitHub: https://github.com/Nikkypwetti
-- LinkedIn: https://www.linkedin.com/in/ganiyu-basirat-308ab9403
-- Portfolio: https://nikkytechies-portfolio.vercel.app/
+- [ ] Run `supabase/schema.sql`
+- [ ] Set Vercel environment variables
+- [ ] Add production redirect URLs in Supabase Auth
+- [ ] Verify signup + email confirmation
+- [ ] Verify login/logout
+- [ ] Verify password reset
+- [ ] Verify skills are isolated per user
+- [ ] Verify public portfolio route
+- [ ] Confirm CI passes
