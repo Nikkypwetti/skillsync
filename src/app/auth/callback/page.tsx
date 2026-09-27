@@ -15,13 +15,13 @@ export default function CallbackPage() {
       const { data } = await supabase.auth.getSession();
 
       if (data.session) {
-        router.replace("/dashboard?confirmed=true");
+        router.replace("/dashboard");
         return;
       }
 
       const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session) {
-          router.replace("/dashboard?confirmed=true");
+          router.replace("/dashboard");
         }
       });
 
