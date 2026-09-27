@@ -81,6 +81,7 @@ export default function ProjectForm({
   function canContinue() {
     if (step === 1) return title.trim().length > 1;
     if (step === 2) return challenge.trim().length > 4 && contribution.trim().length > 4;
+    if (step === 3) return tools.trim().length > 1;
     return true;
   }
 
@@ -181,8 +182,10 @@ export default function ProjectForm({
       return;
     }
 
-    if (!title.trim() || !challenge.trim() || !contribution.trim()) {
-      setMessage("Complete the required project details before saving.");
+    if (!title.trim() || !challenge.trim() || !contribution.trim() || !tools.trim()) {
+      setMessage(
+        "Complete the required project details and add at least one tool before saving."
+      );
       return;
     }
 
@@ -438,7 +441,7 @@ export default function ProjectForm({
           />
 
           <label className="form-label mt-5 block">
-            Tools used
+            Tools used <span className="text-rose-500">*</span>
             <input
               className="field"
               value={tools}
@@ -446,7 +449,7 @@ export default function ProjectForm({
               placeholder="n8n, Airtable, Gmail, Google Calendar, HubSpot..."
             />
             <span className="mt-2 block text-xs font-normal text-slate-400">
-              Separate tools with commas.
+              Required. Separate tools with commas. Skill evidence is not generated until you complete this field.
             </span>
           </label>
 
@@ -644,7 +647,7 @@ export default function ProjectForm({
                 ? "Saving project…"
                 : editing
                   ? "Save changes"
-                  : "Add project to portfolio"}
+                  : "Finish & add project"}
             </button>
           )}
         </div>
