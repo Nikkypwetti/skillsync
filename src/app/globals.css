@@ -297,3 +297,42 @@ a {
     transform: none !important;
   }
 }
+
+
+.form-section {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.form-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(99, 102, 241, .08);
+}
+
+.project-submit-button {
+  background-size: 180% 180%;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background-position 260ms ease;
+}
+
+.project-submit-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background-position: 100% 50%;
+  box-shadow: 0 14px 30px rgba(79, 70, 229, .28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-section,
+  .project-submit-button {
+    transition: none !important;
+  }
+
+  .form-section:hover,
+  .project-submit-button:hover:not(:disabled) {
+    transform: none !important;
+  }
+}
