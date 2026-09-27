@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
-import type { Profile, Project, ProjectSkill } from "@/types";
+import type { Profile, Project, ProjectAsset, ProjectSkill } from "@/types";
 
 export default function PortfolioPage() {
   const params = useParams<{ username: string }>();
@@ -12,6 +12,8 @@ export default function PortfolioPage() {
   const [profile,setProfile]=useState<Profile|null>(null);
   const [projects,setProjects]=useState<Project[]>([]);
   const [skills,setSkills]=useState<ProjectSkill[]>([]);
+  const [assets,setAssets]=useState<ProjectAsset[]>([]);
+  const [assetUrls,setAssetUrls]=useState<Record<string,string>>({});
   const [loading,setLoading]=useState(true);
 
   useEffect(()=>{
@@ -37,13 +39,26 @@ export default function PortfolioPage() {
       }
 
       if(userId){
-        const [projectResult,skillResult]=await Promise.all([
+        const [projectResult,skillResult,assetResult]=await Promise.all([
           supabase.from("projects").select("*").eq("user_id",userId).eq("public",true).order("featured",{ascending:false}).order("created_at",{ascending:false}),
           supabase.from("project_skills").select("*").eq("user_id",userId),
+          supabase.from("project_assets").select("*").eq("user_id",userId).order("created_at",{ascending:true}),
         ]);
         if(active){
-          setProjects((projectResult.data||[]) as Project[]);
+          const projectRows=(projectResult.data||[]) as Project[];
+          const assetRows=(assetResult.data||[]) as ProjectAsset[];
+          setProjects(projectRows);
           setSkills((skillResult.data||[]) as ProjectSkill[]);
+          setAssets(assetRows);
+
+          const urls:Record<string,string>={};
+          for(const asset of assetRows){
+            const {data:signed}=await supabase.storage
+              .from("project-evidence")
+              .createSignedUrl(asset.storage_path,3600);
+            if(signed?.signedUrl) urls[asset.id]=signed.signedUrl;
+          }
+          if(active) setAssetUrls(urls);
         }
       }
       if(active){setProfile(profileData);setLoading(false);}
@@ -113,7 +128,15 @@ export default function PortfolioPage() {
             <div className="grid gap-5 lg:grid-cols-2">
               {projects.map(project=>{
                 const projectSkills=skills.filter(skill=>skill.project_id===project.id);
+                const projectAssets=assets.filter(asset=>asset.project_id===project.id);
+                const cover=projectAssets.find(asset=>asset.file_type?.startsWith("image/"));
                 return <article key={project.id} className="rounded-[2rem] border border-white/10 bg-white/[.045] p-6 transition hover:-translate-y-1 hover:bg-white/[.06]">
+                  {cover && assetUrls[cover.id] ? (
+                    <div className="mb-5 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+                      <img src={assetUrls[cover.id]} alt={project.title + " evidence"} className="h-52 w-full object-cover" />
+                    </div>
+                  ) : null}
+
                   <div className="flex flex-wrap gap-2">
                     {project.career_track?<span className="rounded-full bg-violet-500/15 px-3 py-1 text-[11px] font-black text-violet-200">{project.career_track}</span>:null}
                     {project.project_type?<span className="rounded-full bg-white/5 px-3 py-1 text-[11px] font-black text-slate-400">{project.project_type}</span>:null}
@@ -128,6 +151,15 @@ export default function PortfolioPage() {
                   {project.tools?.length?<div className="mt-5 flex flex-wrap gap-2">{project.tools.map(tool=><span key={tool} className="rounded-lg bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-300">{tool}</span>)}</div>:null}
 
                   {projectSkills.length?<div className="mt-5 border-t border-white/10 pt-5"><p className="text-[11px] font-black uppercase tracking-[.18em] text-slate-500">Skills demonstrated</p><div className="mt-3 flex flex-wrap gap-2">{projectSkills.map(skill=><span key={skill.id} className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs font-bold text-violet-200">{skill.name} · {skill.evidence_level}</span>)}</div></div>:null}
+
+                  {projectAssets.length ? (
+                    <div className="mt-5 border-t border-white/10 pt-5">
+                      <p className="text-[11px] font-black uppercase tracking-[.18em] text-slate-500">Evidence files</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {projectAssets.map(asset=>assetUrls[asset.id]?<a key={asset.id} href={assetUrls[asset.id]} target="_blank" rel="noreferrer" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-white/10">{asset.file_name} ↗</a>:null)}
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="mt-5 flex flex-wrap gap-4 text-xs font-black text-violet-300">
                     {project.repo_link?<a href={project.repo_link} target="_blank" rel="noreferrer">Repository ↗</a>:null}
