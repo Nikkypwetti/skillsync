@@ -52,3 +52,15 @@ export type Profile = {
   website_url: string | null;
   portfolio_public: boolean;
 };
+
+export type ProjectAsset = {
+  id: string;
+  project_id: string;
+  user_id: string;
+  storage_path: string;
+  public_url: string;
+  file_name: string;
+  file_type: string | null;
+  file_size: number | null;
+  created_at: string;
+};
