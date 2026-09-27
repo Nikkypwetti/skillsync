@@ -8,11 +8,12 @@ import { supabase } from "@/lib/supabaseClient";
 import ProjectForm from "./components/ProjectForm";
 import ProjectCard from "./components/ProjectCard";
 import ProfileForm from "./components/ProfileForm";
-import type { Project, ProjectSkill } from "@/types";
+import type { Project, ProjectAsset, ProjectSkill } from "@/types";
 
 type DashboardData = {
   projects: Project[];
   projectSkills: ProjectSkill[];
+  projectAssets: ProjectAsset[];
   name: string;
   username: string | null;
   profileComplete: number;
@@ -21,11 +22,12 @@ type DashboardData = {
 
 async function fetchDashboardData(): Promise<DashboardData> {
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return { projects: [], projectSkills: [], name: "there", username: null, profileComplete: 0, error: null };
+  if (!auth.user) return { projects: [], projectSkills: [], projectAssets: [], name: "there", username: null, profileComplete: 0, error: null };
 
-  const [projectResult, skillResult, profileResult] = await Promise.all([
+  const [projectResult, skillResult, assetResult, profileResult] = await Promise.all([
     supabase.from("projects").select("*").eq("user_id", auth.user.id).order("created_at", { ascending: false }),
     supabase.from("project_skills").select("*").eq("user_id", auth.user.id),
+    supabase.from("project_assets").select("*").eq("user_id", auth.user.id).order("created_at", { ascending: false }),
     supabase.from("profiles").select("full_name,username,career_track,headline,about,location,linkedin_url,website_url").eq("id", auth.user.id).maybeSingle(),
   ]);
 
@@ -39,17 +41,19 @@ async function fetchDashboardData(): Promise<DashboardData> {
   return {
     projects: (projectResult.data || []) as Project[],
     projectSkills: (skillResult.data || []) as ProjectSkill[],
+    projectAssets: (assetResult.data || []) as ProjectAsset[],
     name: profile?.full_name || auth.user.user_metadata?.full_name || auth.user.email?.split("@")[0] || "there",
     username: profile?.username || null,
     profileComplete,
-    error: projectResult.error?.message || skillResult.error?.message || profileResult.error?.message || null,
+    error: projectResult.error?.message || skillResult.error?.message || assetResult.error?.message || profileResult.error?.message || null,
   };
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData>({ projects: [], projectSkills: [], name: "there", username: null, profileComplete: 0, error: null });
+  const [data, setData] = useState<DashboardData>({ projects: [], projectSkills: [], projectAssets: [], name: "there", username: null, profileComplete: 0, error: null });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"projects" | "profile">("projects");
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   const refresh = useCallback(async () => {
     const result = await fetchDashboardData();
@@ -129,10 +133,22 @@ export default function DashboardPage() {
               <section id="add-project" className="motion-fade-up motion-delay-2 mt-6 overflow-hidden rounded-[2rem] border border-indigo-100 bg-white p-6 shadow-xl shadow-indigo-100/40 sm:p-8">
                 <div className="mb-7 max-w-3xl rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50 via-white to-violet-50 p-5">
                   <p className="eyebrow">Project evidence</p>
-                  <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Add work you can stand behind</h2>
-                  <p className="mt-3 text-sm leading-6 text-slate-500">Development, automation, RevOps, virtual assistant work, customer support, operations, research, data, content, and other project-based work all belong here.</p>
+                  <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">{editingProject ? "Improve this project" : "Add work you can stand behind"}</h2>
+                  <p className="mt-3 text-sm leading-6 text-slate-500">{editingProject ? "Update the evidence, links, files, visibility, or featured status. SkillSync will recalculate the demonstrated capabilities when you save." : "Development, automation, RevOps, virtual assistant work, customer support, operations, research, data, content, and other project-based work all belong here."}</p>
                 </div>
-                <ProjectForm onCreated={refresh} />
+                <ProjectForm
+                  project={editingProject}
+                  existingAssets={
+                    editingProject
+                      ? data.projectAssets.filter((asset) => asset.project_id === editingProject.id)
+                      : []
+                  }
+                  onSaved={async () => {
+                    await refresh();
+                    if (editingProject) setEditingProject(null);
+                  }}
+                  onCancelEdit={() => setEditingProject(null)}
+                />
               </section>
 
               <section className="motion-fade-up motion-delay-3 mt-8 grid gap-6 lg:grid-cols-[1fr_.42fr]">
@@ -147,7 +163,7 @@ export default function DashboardPage() {
                       <h3 className="mt-5 text-xl font-black text-slate-950">Start with one real project</h3>
                       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">It can be a personal project, work simulation, client task, virtual assistant workflow, automation, support process, or development build.</p>
                     </div>
-                  ) : <div className="grid gap-4 xl:grid-cols-2">{data.projects.map((project,index) => <ProjectCard key={project.id} project={project} skills={data.projectSkills.filter(skill=>skill.project_id===project.id)} onChanged={refresh} index={index} />)}</div>}
+                  ) : <div className="grid gap-4 xl:grid-cols-2">{data.projects.map((project,index) => <ProjectCard key={project.id} project={project} skills={data.projectSkills.filter(skill=>skill.project_id===project.id)} assets={data.projectAssets.filter(asset=>asset.project_id===project.id)} onChanged={refresh} onEdit={(selected) => { setEditingProject(selected); window.requestAnimationFrame(() => document.getElementById("add-project")?.scrollIntoView({ behavior: "smooth", block: "start" })); }} index={index} />)}</div>}
                 </div>
 
                 <aside className="sticky-card rounded-[2rem] border border-violet-100 bg-gradient-to-b from-white to-violet-50/60 p-6 shadow-lg shadow-violet-100/50">
