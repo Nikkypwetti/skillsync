@@ -90,10 +90,32 @@ export default function PortfolioPage() {
 
   return (
     <main className="min-h-screen bg-[#09090f] text-white">
-      <div className="border-b border-white/10">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="font-black tracking-tight text-violet-300">SkillSync Portfolio</Link>
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-slate-300">Proof-based profile</span>
+      <div className="border-b border-white/10 bg-black/20 backdrop-blur">
+        <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <Link href="/" className="flex items-center gap-2 font-black tracking-tight text-white hover:text-violet-300">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-xs font-black text-white">
+              S
+            </span>
+            SkillSync
+          </Link>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/"
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-black text-slate-200 hover:bg-white/10"
+            >
+              Home
+            </Link>
+            <Link
+              href="/dashboard"
+              className="rounded-xl border border-violet-400/20 bg-violet-400/10 px-3 py-2 text-xs font-black text-violet-200 hover:bg-violet-400/20"
+            >
+              Back to workspace
+            </Link>
+            <span className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-slate-300 sm:inline-flex">
+              Proof-based profile
+            </span>
+          </div>
         </div>
       </div>
 
