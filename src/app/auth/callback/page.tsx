@@ -13,25 +13,37 @@ export default function CallbackPage() {
 
     async function finish() {
       const { data } = await supabase.auth.getSession();
+
       if (data.session) {
-        router.replace("/dashboard");
+        router.replace("/dashboard?confirmed=true");
         return;
       }
 
       const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session) router.replace("/dashboard");
+        if (session) {
+          router.replace("/dashboard?confirmed=true");
+        }
       });
 
       timeout = setTimeout(() => {
         listener.subscription.unsubscribe();
-        setMessage("Email confirmed. Please sign in to continue.");
+        setMessage("Email confirmed. Redirecting to sign in…");
         setTimeout(() => router.replace("/auth/login"), 900);
       }, 1800);
     }
 
     finish();
+
     return () => clearTimeout(timeout);
   }, [router]);
 
-  return <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-sm font-medium text-white">{message}</div>;
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
+      <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/5 p-8 text-center shadow-2xl">
+        <div className="mx-auto h-10 w-10 animate-pulse rounded-2xl bg-indigo-500/30" />
+        <h1 className="mt-5 text-xl font-black">SkillSync</h1>
+        <p className="mt-2 text-sm text-slate-300">{message}</p>
+      </div>
+    </main>
+  );
 }
