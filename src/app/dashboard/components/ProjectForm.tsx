@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { Project, ProjectAsset } from "@/types";
 
@@ -37,59 +37,26 @@ export default function ProjectForm({
   onCancelEdit,
 }: Props) {
   const [step, setStep] = useState(1);
-  const [title, setTitle] = useState("");
-  const [track, setTrack] = useState("");
-  const [role, setRole] = useState("");
-  const [challenge, setChallenge] = useState("");
-  const [contribution, setContribution] = useState("");
-  const [outcome, setOutcome] = useState("");
-  const [tools, setTools] = useState("");
-  const [repo, setRepo] = useState("");
-  const [live, setLive] = useState("");
-  const [evidence, setEvidence] = useState("");
-  const [isPublic, setIsPublic] = useState(true);
-  const [featured, setFeatured] = useState(false);
+  const [title, setTitle] = useState(project?.title || "");
+  const [track, setTrack] = useState(project?.career_track || "");
+  const [role, setRole] = useState(project?.role || "");
+  const [challenge, setChallenge] = useState(
+    project?.challenge || project?.description || ""
+  );
+  const [contribution, setContribution] = useState(project?.contribution || "");
+  const [outcome, setOutcome] = useState(project?.outcome || "");
+  const [tools, setTools] = useState((project?.tools || []).join(", "));
+  const [repo, setRepo] = useState(project?.repo_link || "");
+  const [live, setLive] = useState(project?.live_url || "");
+  const [evidence, setEvidence] = useState(project?.evidence_url || "");
+  const [isPublic, setIsPublic] = useState(project?.public ?? true);
+  const [featured, setFeatured] = useState(project?.featured ?? false);
   const [files, setFiles] = useState<File[]>([]);
   const [assets, setAssets] = useState<ProjectAsset[]>(existingAssets);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const editing = Boolean(project);
-
-  useEffect(() => {
-    setStep(1);
-    setMessage(null);
-    setFiles([]);
-    setAssets(existingAssets);
-
-    if (project) {
-      setTitle(project.title || "");
-      setTrack(project.career_track || "");
-      setRole(project.role || "");
-      setChallenge(project.challenge || project.description || "");
-      setContribution(project.contribution || "");
-      setOutcome(project.outcome || "");
-      setTools((project.tools || []).join(", "));
-      setRepo(project.repo_link || "");
-      setLive(project.live_url || "");
-      setEvidence(project.evidence_url || "");
-      setIsPublic(project.public);
-      setFeatured(project.featured);
-    } else {
-      setTitle("");
-      setTrack("");
-      setRole("");
-      setChallenge("");
-      setContribution("");
-      setOutcome("");
-      setTools("");
-      setRepo("");
-      setLive("");
-      setEvidence("");
-      setIsPublic(true);
-      setFeatured(false);
-    }
-  }, [project, existingAssets]);
 
   const selectedFileLabel = useMemo(() => {
     if (!files.length) return "No new files selected";
