@@ -18,11 +18,31 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
     setLoading(false);
 
-    if (error) {
-      setError(error.message);
+    if (signInError) {
+      const message = signInError.message.toLowerCase();
+
+      if (message.includes("email not confirmed")) {
+        setError(
+          "Your email has not been confirmed yet. Check your inbox and spam folder for the confirmation message."
+        );
+        return;
+      }
+
+      if (message.includes("invalid login credentials")) {
+        setError(
+          "The email or password is incorrect. If you already created an account and cannot remember the password, use Reset password."
+        );
+        return;
+      }
+
+      setError(signInError.message);
       return;
     }
 
@@ -30,13 +50,65 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthCard title="Welcome back" subtitle="Sign in to keep tracking your progress." footerText="New to SkillSync?" footerHref="/auth/signup" footerLabel="Create an account">
+    <AuthCard
+      title="Welcome back"
+      subtitle="Sign in to continue building your proof-based portfolio."
+      footerText="New to SkillSync?"
+      footerHref="/auth/signup"
+      footerLabel="Create an account"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error ? <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none ring-indigo-500 focus:ring-2" />
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none ring-indigo-500 focus:ring-2" />
-        <div className="flex justify-end"><Link href="/auth/reset-password" className="text-sm font-semibold text-indigo-600">Forgot password?</Link></div>
-        <button disabled={loading} className="w-full rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">{loading ? "Signing in…" : "Sign in"}</button>
+        {error ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"
+          >
+            {error}
+          </div>
+        ) : null}
+
+        <label className="form-label">
+          Email address
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+            required
+            className="field"
+          />
+        </label>
+
+        <label className="form-label">
+          Password
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Your password"
+            autoComplete="current-password"
+            required
+            className="field"
+          />
+        </label>
+
+        <div className="flex justify-end">
+          <Link
+            href="/auth/reset-password"
+            className="text-sm font-bold text-indigo-600 hover:text-indigo-700"
+          >
+            Reset password
+          </Link>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? "Signing in…" : "Sign in"}
+        </button>
       </form>
     </AuthCard>
   );
