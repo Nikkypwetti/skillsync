@@ -155,6 +155,7 @@ export default function PortfolioPage() {
                 return <article key={project.id} className="rounded-[2rem] border border-white/10 bg-white/[.045] p-6 transition hover:-translate-y-1 hover:bg-white/[.06]">
                   {cover && assetUrls[cover.id] ? (
                     <div className="mb-5 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={assetUrls[cover.id]} alt={project.title + " evidence"} className="h-52 w-full object-cover" />
                     </div>
                   ) : null}
