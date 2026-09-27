@@ -138,3 +138,201 @@ a {
 .link-soft:hover {
   color: #7c3aed;
 }
+
+
+/* Subtle workspace motion */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-soft {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, 12px, 0) scale(1.05);
+  }
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pulse-ring {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(99, 102, 241, .06);
+  }
+}
+
+.motion-fade-up {
+  animation: fade-up .55s cubic-bezier(.2,.7,.2,1) both;
+}
+
+.motion-delay-1 {
+  animation-delay: 70ms;
+}
+
+.motion-delay-2 {
+  animation-delay: 140ms;
+}
+
+.motion-delay-3 {
+  animation-delay: 210ms;
+}
+
+.motion-float-slow {
+  animation: float-soft 8s ease-in-out infinite;
+}
+
+.motion-float-delayed {
+  animation: float-soft 10s ease-in-out 1.2s infinite;
+}
+
+.project-card-motion {
+  animation: card-enter .55s cubic-bezier(.2,.7,.2,1) both;
+}
+
+.stat-card {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  border-color: #c7d2fe;
+  box-shadow: 0 16px 36px rgba(99, 102, 241, .10);
+}
+
+.capability-row {
+  transition:
+    transform 170ms ease,
+    border-color 170ms ease,
+    box-shadow 170ms ease;
+}
+
+.capability-row:hover {
+  transform: translateX(4px);
+  border-color: #ddd6fe;
+  box-shadow: 0 8px 24px rgba(124, 58, 237, .08);
+}
+
+.capability-pill {
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.capability-pill:hover {
+  transform: translateY(-1px);
+  border-color: #a5b4fc;
+  background: #eef2ff;
+}
+
+.evidence-link {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.evidence-link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, .10);
+}
+
+.sticky-card {
+  align-self: start;
+}
+
+@media (min-width: 1024px) {
+  .sticky-card {
+    position: sticky;
+    top: 5.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .motion-fade-up,
+  .motion-float-slow,
+  .motion-float-delayed,
+  .project-card-motion {
+    animation: none !important;
+  }
+
+  .stat-card,
+  .capability-row,
+  .capability-pill,
+  .evidence-link {
+    transition: none !important;
+  }
+
+  .stat-card:hover,
+  .capability-row:hover,
+  .capability-pill:hover,
+  .evidence-link:hover {
+    transform: none !important;
+  }
+}
+
+
+.form-section {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.form-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(99, 102, 241, .08);
+}
+
+.project-submit-button {
+  background-size: 180% 180%;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background-position 260ms ease;
+}
+
+.project-submit-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background-position: 100% 50%;
+  box-shadow: 0 14px 30px rgba(79, 70, 229, .28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-section,
+  .project-submit-button {
+    transition: none !important;
+  }
+
+  .form-section:hover,
+  .project-submit-button:hover:not(:disabled) {
+    transform: none !important;
+  }
+}
