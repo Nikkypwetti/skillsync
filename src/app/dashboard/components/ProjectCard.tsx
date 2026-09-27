@@ -91,12 +91,32 @@ export default function ProjectCard({
   async function remove() {
     if (!window.confirm(`Delete "${project.title}" and its evidence?`)) return;
     setBusy(true);
-    await supabase
+
+    if (assets.length) {
+      const { error: storageError } = await supabase.storage
+        .from("project-evidence")
+        .remove(assets.map((asset) => asset.storage_path));
+
+      if (storageError) {
+        setBusy(false);
+        window.alert("Could not remove the project's evidence files: " + storageError.message);
+        return;
+      }
+    }
+
+    const { error: deleteError } = await supabase
       .from("projects")
       .delete()
       .eq("id", project.id)
       .eq("user_id", project.user_id);
+
     setBusy(false);
+
+    if (deleteError) {
+      window.alert(deleteError.message);
+      return;
+    }
+
     await onChanged();
   }
 
