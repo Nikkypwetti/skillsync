@@ -457,3 +457,113 @@ create trigger project_asset_evidence_refresh
 after insert or update or delete
 on public.project_assets
 for each row execute function public.touch_project_after_asset_change();
+
+
+-- SkillSync v2: portfolio customization, project review, experience, and richer evidence.
+alter table public.profiles
+  add column if not exists portfolio_template text not null default 'professional',
+  add column if not exists accent_color text not null default 'indigo',
+  add column if not exists show_experience boolean not null default true,
+  add column if not exists show_certifications boolean not null default true,
+  add column if not exists onboarding_completed boolean not null default false,
+  add column if not exists github_username text;
+
+alter table public.projects
+  add column if not exists status text not null default 'completed',
+  add column if not exists source text not null default 'manual';
+
+create table if not exists public.project_evidence_links (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.projects(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  evidence_type text not null,
+  label text,
+  url text not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.project_skill_reviews (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.projects(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  skill_name text not null,
+  status text not null default 'confirmed',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(project_id, skill_name)
+);
+
+create table if not exists public.experiences (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  role text not null,
+  organization text not null,
+  employment_type text,
+  location text,
+  start_date date,
+  end_date date,
+  is_current boolean not null default false,
+  description text,
+  public boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.certificates
+  add column if not exists description text,
+  add column if not exists credential_id text,
+  add column if not exists public boolean not null default true;
+
+alter table public.project_evidence_links enable row level security;
+alter table public.project_skill_reviews enable row level security;
+alter table public.experiences enable row level security;
+
+drop policy if exists "Users can view project evidence links" on public.project_evidence_links;
+create policy "Users can view project evidence links" on public.project_evidence_links
+for select using (
+  auth.uid() = user_id or exists (
+    select 1 from public.projects p
+    where p.id = project_id and p.public = true and p.status <> 'archived'
+  )
+);
+drop policy if exists "Users can insert own project evidence links" on public.project_evidence_links;
+create policy "Users can insert own project evidence links" on public.project_evidence_links
+for insert with check (auth.uid() = user_id);
+drop policy if exists "Users can update own project evidence links" on public.project_evidence_links;
+create policy "Users can update own project evidence links" on public.project_evidence_links
+for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "Users can delete own project evidence links" on public.project_evidence_links;
+create policy "Users can delete own project evidence links" on public.project_evidence_links
+for delete using (auth.uid() = user_id);
+
+drop policy if exists "Users can view own skill reviews" on public.project_skill_reviews;
+create policy "Users can view own skill reviews" on public.project_skill_reviews
+for select using (auth.uid() = user_id);
+drop policy if exists "Users can insert own skill reviews" on public.project_skill_reviews;
+create policy "Users can insert own skill reviews" on public.project_skill_reviews
+for insert with check (auth.uid() = user_id);
+drop policy if exists "Users can update own skill reviews" on public.project_skill_reviews;
+create policy "Users can update own skill reviews" on public.project_skill_reviews
+for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "Users can delete own skill reviews" on public.project_skill_reviews;
+create policy "Users can delete own skill reviews" on public.project_skill_reviews
+for delete using (auth.uid() = user_id);
+
+drop policy if exists "Users can view own and public experiences" on public.experiences;
+create policy "Users can view own and public experiences" on public.experiences
+for select using (
+  auth.uid() = user_id or (
+    public = true and exists (
+      select 1 from public.profiles p where p.id = user_id and p.portfolio_public = true
+    )
+  )
+);
+drop policy if exists "Users can insert own experiences" on public.experiences;
+create policy "Users can insert own experiences" on public.experiences
+for insert with check (auth.uid() = user_id);
+drop policy if exists "Users can update own experiences" on public.experiences;
+create policy "Users can update own experiences" on public.experiences
+for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "Users can delete own experiences" on public.experiences;
+create policy "Users can delete own experiences" on public.experiences
+for delete using (auth.uid() = user_id);
