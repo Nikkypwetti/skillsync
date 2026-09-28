@@ -567,3 +567,8 @@ for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 drop policy if exists "Users can delete own experiences" on public.experiences;
 create policy "Users can delete own experiences" on public.experiences
 for delete using (auth.uid() = user_id);
+
+
+-- Production hardening
+-- Keep trigger helpers on a fixed search path.
+alter function public.set_updated_at() set search_path = public;
