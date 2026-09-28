@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { levelFromScore } from "@/lib/evidence";
-import type { Profile, Project, ProjectAsset, ProjectSkill } from "@/types";
+import type { Certificate, Experience, Profile, Project, ProjectAsset, ProjectEvidenceLink, ProjectSkill } from "@/types";
 
 export default function PortfolioPage() {
   const params = useParams<{ username: string }>();
@@ -15,6 +15,9 @@ export default function PortfolioPage() {
   const [skills,setSkills]=useState<ProjectSkill[]>([]);
   const [assets,setAssets]=useState<ProjectAsset[]>([]);
   const [assetUrls,setAssetUrls]=useState<Record<string,string>>({});
+  const [evidenceLinks,setEvidenceLinks]=useState<ProjectEvidenceLink[]>([]);
+  const [experiences,setExperiences]=useState<Experience[]>([]);
+  const [certificates,setCertificates]=useState<Certificate[]>([]);
   const [loading,setLoading]=useState(true);
 
   useEffect(()=>{
@@ -30,7 +33,7 @@ export default function PortfolioPage() {
           const {data}=await supabase.from("profiles").select("*").eq("id",userId).maybeSingle();
           profileData=data as Profile|null;
           if(!profileData){
-            profileData={id:userId,full_name:auth.user.user_metadata?.full_name||auth.user.email?.split("@")[0]||"SkillSync User",username:null,career_track:null,headline:null,location:null,about:null,linkedin_url:null,website_url:null,portfolio_public:true};
+            profileData={id:userId,full_name:auth.user.user_metadata?.full_name||auth.user.email?.split("@")[0]||"SkillSync User",username:null,career_track:null,headline:null,location:null,about:null,linkedin_url:null,website_url:null,portfolio_public:true,portfolio_template:"professional",accent_color:"indigo",show_experience:true,show_certifications:true,onboarding_completed:true,github_username:null};
           }
         }
       }else{
@@ -40,10 +43,13 @@ export default function PortfolioPage() {
       }
 
       if(userId){
-        const [projectResult,skillResult,assetResult]=await Promise.all([
-          supabase.from("projects").select("*").eq("user_id",userId).eq("public",true).order("featured",{ascending:false}).order("created_at",{ascending:false}),
+        const [projectResult,skillResult,assetResult,linkResult,experienceResult,certificateResult]=await Promise.all([
+          supabase.from("projects").select("*").eq("user_id",userId).eq("public",true).neq("status","archived").order("featured",{ascending:false}).order("created_at",{ascending:false}),
           supabase.from("project_skills").select("*").eq("user_id",userId),
           supabase.from("project_assets").select("*").eq("user_id",userId).order("created_at",{ascending:true}),
+          supabase.from("project_evidence_links").select("*").eq("user_id",userId).order("created_at",{ascending:true}),
+          supabase.from("experiences").select("*").eq("user_id",userId).eq("public",true).order("start_date",{ascending:false}),
+          supabase.from("certificates").select("*").eq("user_id",userId).eq("public",true).order("date_issued",{ascending:false}),
         ]);
         if(active){
           const projectRows=(projectResult.data||[]) as Project[];
@@ -51,6 +57,9 @@ export default function PortfolioPage() {
           setProjects(projectRows);
           setSkills((skillResult.data||[]) as ProjectSkill[]);
           setAssets(assetRows);
+          setEvidenceLinks((linkResult.data||[]) as ProjectEvidenceLink[]);
+          setExperiences((experienceResult.data||[]) as Experience[]);
+          setCertificates((certificateResult.data||[]) as Certificate[]);
 
           const urls:Record<string,string>={};
           for(const asset of assetRows){
@@ -105,6 +114,20 @@ export default function PortfolioPage() {
   if(!profile)return <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white"><div className="text-center"><h1 className="text-3xl font-black">Portfolio not found</h1><Link href="/" className="mt-4 inline-block text-violet-300">Back to SkillSync</Link></div></main>;
 
   const name=profile.full_name||profile.username||"SkillSync Professional";
+  const templateClass = {
+    professional:"max-w-6xl",
+    technical:"max-w-7xl",
+    operations:"max-w-6xl",
+    minimal:"max-w-5xl",
+    creative:"max-w-7xl",
+  }[profile.portfolio_template] || "max-w-6xl";
+  const accentClass = {
+    indigo:"bg-violet-600",
+    emerald:"bg-emerald-600",
+    rose:"bg-rose-600",
+    amber:"bg-amber-500",
+    cyan:"bg-cyan-600",
+  }[profile.accent_color] || "bg-violet-600";
 
   return (
     <main className="min-h-screen bg-[#09090f] text-white">
@@ -137,9 +160,9 @@ export default function PortfolioPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+      <div className={`mx-auto ${templateClass} px-4 py-12 sm:px-6 sm:py-16`}>
         <section className="relative overflow-hidden rounded-[2.2rem] border border-white/10 bg-gradient-to-br from-white/[.08] to-white/[.03] p-7 sm:p-10">
-          <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-violet-600/20 blur-3xl"/>
+          <div className={`absolute -right-24 -top-24 h-72 w-72 rounded-full ${accentClass} opacity-20 blur-3xl`}/>
           <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
               {profile.career_track?<p className="text-xs font-black uppercase tracking-[.24em] text-violet-300">{profile.career_track}</p>:null}
@@ -169,6 +192,7 @@ export default function PortfolioPage() {
               {projects.map(project=>{
                 const projectSkills=skills.filter(skill=>skill.project_id===project.id);
                 const projectAssets=assets.filter(asset=>asset.project_id===project.id);
+                const projectLinks=evidenceLinks.filter(link=>link.project_id===project.id);
                 const cover=projectAssets.find(asset=>asset.file_type?.startsWith("image/"));
                 return <article key={project.id} className="rounded-[2rem] border border-white/10 bg-white/[.045] p-6 transition hover:-translate-y-1 hover:bg-white/[.06]">
                   {cover && assetUrls[cover.id] ? (
@@ -206,12 +230,25 @@ export default function PortfolioPage() {
                     {project.repo_link?<a href={project.repo_link} target="_blank" rel="noreferrer">Repository ↗</a>:null}
                     {project.live_url?<a href={project.live_url} target="_blank" rel="noreferrer">Live project ↗</a>:null}
                     {project.evidence_url?<a href={project.evidence_url} target="_blank" rel="noreferrer">Evidence ↗</a>:null}
+                    {projectLinks.map(link=><a key={link.id} href={link.url} target="_blank" rel="noreferrer">{link.label||link.evidence_type} ↗</a>)}
                   </div>
                 </article>;
               })}
             </div>
           )}
         </section>
+
+        {profile.show_experience && experiences.length ? <section className="mt-12">
+          <p className="text-xs font-black uppercase tracking-[.22em] text-violet-300">Experience</p>
+          <h2 className="mt-2 text-3xl font-black">Work beyond the project cards</h2>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">{experiences.map(item=><article key={item.id} className="rounded-2xl border border-white/10 bg-white/[.04] p-5"><p className="text-lg font-black">{item.role}</p><p className="mt-1 text-sm font-bold text-violet-300">{item.organization}</p>{item.description?<p className="mt-3 text-sm leading-6 text-slate-400">{item.description}</p>:null}</article>)}</div>
+        </section>:null}
+
+        {profile.show_certifications && certificates.length ? <section className="mt-12">
+          <p className="text-xs font-black uppercase tracking-[.22em] text-violet-300">Certifications</p>
+          <h2 className="mt-2 text-3xl font-black">Credentials</h2>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{certificates.map(item=><article key={item.id} className="rounded-2xl border border-white/10 bg-white/[.04] p-5"><p className="font-black">{item.name}</p>{item.issuer?<p className="mt-1 text-sm text-slate-400">{item.issuer}</p>:null}{item.url?<a href={item.url} target="_blank" rel="noreferrer" className="mt-3 inline-block text-xs font-black text-violet-300">Verify credential ↗</a>:null}</article>)}</div>
+        </section>:null}
 
         <section className="mt-12 rounded-[2rem] border border-white/10 bg-white/[.035] p-7 sm:p-8">
           <p className="text-xs font-black uppercase tracking-[.22em] text-violet-300">
