@@ -88,6 +88,23 @@ export default function ProjectCard({
   const [busy, setBusy] = useState(false);
   const theme = getTheme(project.career_track);
 
+  async function reviewSkill(skill: ProjectSkill, status: "confirmed" | "dismissed") {
+    const { error } = await supabase.from("project_skill_reviews").upsert({
+      project_id: project.id,
+      user_id: project.user_id,
+      skill_name: skill.name,
+      status,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "project_id,skill_name" });
+
+    if (error) {
+      window.alert(error.message);
+      return;
+    }
+
+    await onChanged();
+  }
+
   async function remove() {
     if (!window.confirm(`Delete "${project.title}" and its evidence?`)) return;
     setBusy(true);
@@ -162,6 +179,9 @@ export default function ProjectCard({
                 ) : null}
 
                 {createdAt ? <span className="text-slate-400">{createdAt}</span> : null}
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-500">
+                  {project.status === "in_progress" ? "In progress" : project.status === "archived" ? "Archived" : "Completed"}
+                </span>
               </div>
 
               <h3 className="mt-3 text-xl font-black leading-tight tracking-[-0.02em] text-slate-950">
@@ -279,6 +299,7 @@ export default function ProjectCard({
               <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                 Demonstrated capabilities
               </p>
+              <span className="text-[10px] font-semibold text-slate-400">Review detected skills: ✓ confirm · × remove</span>
               {skills.length ? (
                 <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-black text-indigo-700">
                   {skills.length}
@@ -296,9 +317,9 @@ export default function ProjectCard({
                   >
                     <span className="font-bold text-slate-700">{skill.name}</span>
                     <span className="h-1 w-1 rounded-full bg-indigo-300" />
-                    <span className="font-black text-indigo-600">
-                      {skill.evidence_level}
-                    </span>
+                    <span className="font-black text-indigo-600">{skill.evidence_level}</span>
+                    <button type="button" onClick={()=>reviewSkill(skill,"confirmed")} className="ml-1 font-black text-emerald-600" title="Confirm this detected skill">✓</button>
+                    <button type="button" onClick={()=>reviewSkill(skill,"dismissed")} className="font-black text-rose-500" title="Remove incorrect skill">×</button>
                   </div>
                 ))}
                 {skills.length > 4 ? (
