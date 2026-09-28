@@ -6,6 +6,25 @@ import type { Certificate, Experience, Project } from "@/types";
 
 type Props = { projects: Project[]; profileComplete: number; onChanged:()=>void|Promise<void> };
 
+async function fetchToolkitData() {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) {
+    return { githubUsername: "", experiences: [] as Experience[], certificates: [] as Certificate[] };
+  }
+
+  const [profileResult, experienceResult, certificateResult] = await Promise.all([
+    supabase.from("profiles").select("github_username").eq("id",auth.user.id).maybeSingle(),
+    supabase.from("experiences").select("*").eq("user_id",auth.user.id).order("created_at",{ascending:false}),
+    supabase.from("certificates").select("*").eq("user_id",auth.user.id).order("created_at",{ascending:false}),
+  ]);
+
+  return {
+    githubUsername: profileResult.data?.github_username || "",
+    experiences: (experienceResult.data || []) as Experience[],
+    certificates: (certificateResult.data || []) as Certificate[],
+  };
+}
+
 export default function CareerToolkit({projects,profileComplete,onChanged}:Props){
   const [github,setGithub]=useState("");
   const [repos,setRepos]=useState<Array<{id:number;name:string;url:string;description:string|null;language:string|null;stars:number}>>([]);
@@ -17,18 +36,26 @@ export default function CareerToolkit({projects,profileComplete,onChanged}:Props
   const [message,setMessage]=useState<string|null>(null);
 
   async function load(){
-    const {data:auth}=await supabase.auth.getUser(); if(!auth.user)return;
-    const [p,e,c]=await Promise.all([
-      supabase.from("profiles").select("github_username").eq("id",auth.user.id).maybeSingle(),
-      supabase.from("experiences").select("*").eq("user_id",auth.user.id).order("created_at",{ascending:false}),
-      supabase.from("certificates").select("*").eq("user_id",auth.user.id).order("created_at",{ascending:false}),
-    ]);
-    setGithub(p.data?.github_username||"");
-    setExperiences((e.data||[]) as Experience[]);
-    setCertificates((c.data||[]) as Certificate[]);
+    const result = await fetchToolkitData();
+    setGithub(result.githubUsername);
+    setExperiences(result.experiences);
+    setCertificates(result.certificates);
   }
 
-  useEffect(()=>{void load();},[]);
+  useEffect(()=>{
+    let active = true;
+
+    fetchToolkitData().then((result) => {
+      if (!active) return;
+      setGithub(result.githubUsername);
+      setExperiences(result.experiences);
+      setCertificates(result.certificates);
+    });
+
+    return () => {
+      active = false;
+    };
+  },[]);
 
   const readiness=useMemo(()=>{
     const project=projects.length?20:0;
