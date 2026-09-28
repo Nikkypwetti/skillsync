@@ -118,7 +118,12 @@ export default function ProjectForm({
     const response = await fetch("/api/assist", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ notes: assistNotes }),
+      body: JSON.stringify({
+        notes: assistNotes,
+        title,
+        role,
+        tools,
+      }),
     });
     const data = await response.json();
     setAssisting(false);
@@ -129,7 +134,10 @@ export default function ProjectForm({
     setChallenge(data.challenge || challenge);
     setContribution(data.contribution || contribution);
     setOutcome(data.outcome || outcome);
-    setMessage("Draft added. Review every sentence and keep only facts that are accurate.");
+    setMessage(
+      data.notice ||
+        "Draft improved. Review every sentence and keep only facts that are accurate."
+    );
   }
 
   async function uploadFiles(projectId: string, userId: string): Promise<string | null> {
@@ -424,7 +432,7 @@ export default function ProjectForm({
               </select>
             </label>
 
-            <label className="form-label md:col-span-2">
+            <label className="form-label">
               Your role
               <input
                 className="field"
@@ -432,6 +440,22 @@ export default function ProjectForm({
                 onChange={(e) => setRole(e.target.value)}
                 placeholder="Automation Builder, Virtual Assistant, Operations Coordinator..."
               />
+            </label>
+
+            <label className="form-label">
+              Project status
+              <select
+                className="field"
+                value={status}
+                onChange={(e)=>setStatus(e.target.value as Project["status"])}
+              >
+                <option value="in_progress">In progress</option>
+                <option value="completed">Completed</option>
+                <option value="archived">Archived</option>
+              </select>
+              <span className="mt-2 block text-xs font-normal text-slate-400">
+                In-progress projects have capped evidence strength. Completed projects can earn stronger evidence levels.
+              </span>
             </label>
           </div>
         </section>
@@ -448,9 +472,9 @@ export default function ProjectForm({
 
           <div className="mt-5 rounded-2xl border border-violet-200 bg-white/80 p-4">
             <p className="text-sm font-black text-slate-900">AI-assisted project writing</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">Paste rough notes. SkillSync will structure them without intentionally inventing metrics or responsibilities. You remain responsible for reviewing the final wording.</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">Paste rough notes in your own words. SkillSync will rewrite them into a clearer problem, contribution, and outcome instead of simply copying your sentence. It will not invent metrics or responsibilities.</p>
             <textarea className="field mt-3 min-h-24 resize-y" value={assistNotes} onChange={(e)=>setAssistNotes(e.target.value)} placeholder="Example: I built an n8n workflow that takes leads from Google Sheets, sends them to Groq for qualification, stores results in Airtable and alerts Slack for hot leads."/>
-            <button type="button" onClick={assistWriting} disabled={assisting} className="mt-3 rounded-xl bg-violet-600 px-4 py-2 text-xs font-black text-white disabled:opacity-50">{assisting?"Drafting…":"Create factual draft"}</button>
+            <button type="button" onClick={assistWriting} disabled={assisting} className="mt-3 rounded-xl bg-violet-600 px-4 py-2 text-xs font-black text-white disabled:opacity-50">{assisting?"Improving…":"Improve my project notes"}</button>
           </div>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -504,10 +528,18 @@ export default function ProjectForm({
               className="field"
               value={tools}
               onChange={(e) => setTools(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setTools((current) =>
+                    current.trim().endsWith(",") ? current + " " : current + ", "
+                  );
+                }
+              }}
               placeholder="n8n, Airtable, Gmail, Google Calendar, HubSpot..."
             />
             <span className="mt-2 block text-xs font-normal text-slate-400">
-              Required. Separate tools with commas. Skill evidence is not generated until you complete this field.
+              Required. Separate tools with commas. Pressing Enter adds a separator instead of saving the form.
             </span>
           </label>
 
@@ -613,15 +645,7 @@ export default function ProjectForm({
             ) : null}
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <label className="form-label">Project status
-              <select className="field" value={status} onChange={(e)=>setStatus(e.target.value as Project["status"])}>
-                <option value="in_progress">In progress</option>
-                <option value="completed">Completed</option>
-                <option value="archived">Archived</option>
-              </select>
-              <span className="mt-2 block text-xs font-normal text-slate-400">In-progress projects receive capped evidence strength. Archived projects stay out of the public portfolio.</span>
-            </label>
+          <div className="mt-5">
             <div className="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
               <p className="text-sm font-black text-slate-900">Additional evidence link</p>
               <div className="mt-3 grid gap-2 sm:grid-cols-[.7fr_1.3fr]">
