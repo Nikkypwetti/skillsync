@@ -288,9 +288,10 @@ export default function ProjectCard({
 
             {skills.length ? (
               <div className="mt-3 flex flex-wrap gap-2">
-                {skills.slice(0, 4).map((skill) => (
+                {[...skills].sort((a, b) => b.evidence_score - a.evidence_score).slice(0, 4).map((skill) => (
                   <div
                     key={skill.id}
+                    title={skill.rationale || undefined}
                     className="capability-pill flex items-center gap-2 rounded-full border border-indigo-100 bg-white px-3 py-1.5 text-xs shadow-sm"
                   >
                     <span className="font-bold text-slate-700">{skill.name}</span>
