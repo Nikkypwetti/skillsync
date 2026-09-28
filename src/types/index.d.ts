@@ -26,6 +26,8 @@ export type Project = {
   public: boolean;
   created_at: string;
   updated_at: string;
+  status: "in_progress" | "completed" | "archived";
+  source: string;
 };
 
 export type ProjectSkill = {
@@ -51,6 +53,12 @@ export type Profile = {
   linkedin_url: string | null;
   website_url: string | null;
   portfolio_public: boolean;
+  portfolio_template: string;
+  accent_color: string;
+  show_experience: boolean;
+  show_certifications: boolean;
+  onboarding_completed: boolean;
+  github_username: string | null;
 };
 
 export type ProjectAsset = {
@@ -63,4 +71,55 @@ export type ProjectAsset = {
   file_type: string | null;
   file_size: number | null;
   created_at: string;
+};
+
+
+export type ProjectEvidenceLink = {
+  id: string;
+  project_id: string;
+  user_id: string;
+  evidence_type: string;
+  label: string | null;
+  url: string;
+  created_at: string;
+};
+
+export type ProjectSkillReview = {
+  id: string;
+  project_id: string;
+  user_id: string;
+  skill_name: string;
+  status: "confirmed" | "dismissed";
+  created_at: string;
+  updated_at: string;
+};
+
+export type Experience = {
+  id: string;
+  user_id: string;
+  role: string;
+  organization: string;
+  employment_type: string | null;
+  location: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  is_current: boolean;
+  description: string | null;
+  public: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Certificate = {
+  id: string;
+  user_id: string;
+  name: string;
+  issuer: string | null;
+  date_issued: string | null;
+  url: string | null;
+  description: string | null;
+  credential_id: string | null;
+  public: boolean;
+  created_at: string;
+  updated_at: string;
 };

@@ -51,6 +51,11 @@ export default function ProjectForm({
   const [evidence, setEvidence] = useState(project?.evidence_url || "");
   const [isPublic, setIsPublic] = useState(project?.public ?? true);
   const [featured, setFeatured] = useState(project?.featured ?? false);
+  const [status, setStatus] = useState<Project["status"]>(project?.status || "completed");
+  const [assistNotes, setAssistNotes] = useState("");
+  const [assisting, setAssisting] = useState(false);
+  const [evidenceType, setEvidenceType] = useState("walkthrough");
+  const [extraEvidenceUrl, setExtraEvidenceUrl] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [assets, setAssets] = useState<ProjectAsset[]>(existingAssets);
   const [saving, setSaving] = useState(false);
@@ -76,6 +81,10 @@ export default function ProjectForm({
     setEvidence("");
     setIsPublic(true);
     setFeatured(false);
+    setStatus("completed");
+    setAssistNotes("");
+    setEvidenceType("walkthrough");
+    setExtraEvidenceUrl("");
   }
 
   function canContinue() {
@@ -97,6 +106,30 @@ export default function ProjectForm({
 
     setMessage(null);
     setStep((current) => Math.min(3, current + 1));
+  }
+
+  async function assistWriting() {
+    if (!assistNotes.trim()) {
+      setMessage("Add rough notes before using the writing assistant.");
+      return;
+    }
+    setAssisting(true);
+    setMessage(null);
+    const response = await fetch("/api/assist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: assistNotes }),
+    });
+    const data = await response.json();
+    setAssisting(false);
+    if (!response.ok) {
+      setMessage(data.error || "Could not generate project copy.");
+      return;
+    }
+    setChallenge(data.challenge || challenge);
+    setContribution(data.contribution || contribution);
+    setOutcome(data.outcome || outcome);
+    setMessage("Draft added. Review every sentence and keep only facts that are accurate.");
   }
 
   async function uploadFiles(projectId: string, userId: string): Promise<string | null> {
@@ -220,6 +253,8 @@ export default function ProjectForm({
       evidence_url: evidence.trim() || null,
       public: isPublic,
       featured,
+      status,
+      source: project?.source || "manual",
       updated_at: new Date().toISOString(),
     };
 
@@ -251,6 +286,22 @@ export default function ProjectForm({
       }
 
       projectId = data.id;
+    }
+
+    if (projectId && extraEvidenceUrl.trim()) {
+      const { error: linkError } = await supabase.from("project_evidence_links").insert({
+        project_id: projectId,
+        user_id: auth.user.id,
+        evidence_type: evidenceType,
+        label: evidenceType.replaceAll("_", " "),
+        url: extraEvidenceUrl.trim(),
+      });
+      if (linkError) {
+        setSaving(false);
+        setMessage("Project saved, but the extra evidence link could not be added: " + linkError.message);
+        await onSaved();
+        return;
+      }
     }
 
     if (projectId && files.length) {
@@ -394,6 +445,13 @@ export default function ProjectForm({
             description="This is the strongest evidence: explain the problem, your contribution, and the outcome."
             tone="violet"
           />
+
+          <div className="mt-5 rounded-2xl border border-violet-200 bg-white/80 p-4">
+            <p className="text-sm font-black text-slate-900">AI-assisted project writing</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">Paste rough notes. SkillSync will structure them without intentionally inventing metrics or responsibilities. You remain responsible for reviewing the final wording.</p>
+            <textarea className="field mt-3 min-h-24 resize-y" value={assistNotes} onChange={(e)=>setAssistNotes(e.target.value)} placeholder="Example: I built an n8n workflow that takes leads from Google Sheets, sends them to Groq for qualification, stores results in Airtable and alerts Slack for hot leads."/>
+            <button type="button" onClick={assistWriting} disabled={assisting} className="mt-3 rounded-xl bg-violet-600 px-4 py-2 text-xs font-black text-white disabled:opacity-50">{assisting?"Drafting…":"Create factual draft"}</button>
+          </div>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-2">
             <label className="form-label">
@@ -553,6 +611,32 @@ export default function ProjectForm({
                 </div>
               </div>
             ) : null}
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <label className="form-label">Project status
+              <select className="field" value={status} onChange={(e)=>setStatus(e.target.value as Project["status"])}>
+                <option value="in_progress">In progress</option>
+                <option value="completed">Completed</option>
+                <option value="archived">Archived</option>
+              </select>
+              <span className="mt-2 block text-xs font-normal text-slate-400">In-progress projects receive capped evidence strength. Archived projects stay out of the public portfolio.</span>
+            </label>
+            <div className="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+              <p className="text-sm font-black text-slate-900">Additional evidence link</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-[.7fr_1.3fr]">
+                <select className="field" value={evidenceType} onChange={(e)=>setEvidenceType(e.target.value)}>
+                  <option value="walkthrough">Loom / walkthrough</option>
+                  <option value="case_study">Notion / case study</option>
+                  <option value="drive_document">Google Drive document</option>
+                  <option value="dashboard">Dashboard</option>
+                  <option value="client_deliverable">Client deliverable</option>
+                  <option value="live_demo">Live demo</option>
+                  <option value="other">Other</option>
+                </select>
+                <input className="field" value={extraEvidenceUrl} onChange={(e)=>setExtraEvidenceUrl(e.target.value)} placeholder="https://..."/>
+              </div>
+            </div>
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
