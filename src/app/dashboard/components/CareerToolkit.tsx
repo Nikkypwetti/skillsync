@@ -16,7 +16,6 @@ export default function CareerToolkit({projects,profileComplete,onChanged}:Props
   const [certificate,setCertificate]=useState({name:"",issuer:"",url:""});
   const [message,setMessage]=useState<string|null>(null);
 
-  useEffect(()=>{void load();},[]);
   async function load(){
     const {data:auth}=await supabase.auth.getUser(); if(!auth.user)return;
     const [p,e,c]=await Promise.all([
@@ -28,6 +27,8 @@ export default function CareerToolkit({projects,profileComplete,onChanged}:Props
     setExperiences((e.data||[]) as Experience[]);
     setCertificates((c.data||[]) as Certificate[]);
   }
+
+  useEffect(()=>{void load();},[]);
 
   const readiness=useMemo(()=>{
     const project=projects.length?20:0;
