@@ -217,7 +217,17 @@ export default function DashboardPage() {
             </section>
           ) : (
             <section className="mt-6">
-              <CareerToolkit projects={data.projects} profileComplete={data.profileComplete} onChanged={refresh} />
+              <CareerToolkit
+                projects={data.projects}
+                profileComplete={data.profileComplete}
+                onChanged={refresh}
+                onGoToProjects={() => {
+                  setTab("projects");
+                  window.requestAnimationFrame(() =>
+                    document.getElementById("add-project")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  );
+                }}
+              />
             </section>
           )}
         </div>
