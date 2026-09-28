@@ -15,18 +15,17 @@ type Props = {
 async function fetchToolkitData() {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) {
-    return { githubUsername: "", careerTrack: "", experiences: [] as Experience[], certificates: [] as Certificate[] };
+    return { githubUsername: "", experiences: [] as Experience[], certificates: [] as Certificate[] };
   }
 
   const [profileResult, experienceResult, certificateResult] = await Promise.all([
-    supabase.from("profiles").select("github_username,career_track").eq("id",auth.user.id).maybeSingle(),
+    supabase.from("profiles").select("github_username").eq("id",auth.user.id).maybeSingle(),
     supabase.from("experiences").select("*").eq("user_id",auth.user.id).order("created_at",{ascending:false}),
     supabase.from("certificates").select("*").eq("user_id",auth.user.id).order("created_at",{ascending:false}),
   ]);
 
   return {
     githubUsername: profileResult.data?.github_username || "",
-    careerTrack: profileResult.data?.career_track || "",
     experiences: (experienceResult.data || []) as Experience[],
     certificates: (certificateResult.data || []) as Certificate[],
   };
@@ -37,7 +36,6 @@ export default function CareerToolkit({projects,profileComplete,onChanged,onGoTo
   const [repos,setRepos]=useState<Repo[]>([]);
   const [loadingRepos,setLoadingRepos]=useState(false);
   const [importingRepoId,setImportingRepoId]=useState<number|null>(null);
-  const [careerTrack,setCareerTrack]=useState("");
   const [experiences,setExperiences]=useState<Experience[]>([]);
   const [certificates,setCertificates]=useState<Certificate[]>([]);
   const [experience,setExperience]=useState({role:"",organization:"",description:""});
@@ -47,7 +45,6 @@ export default function CareerToolkit({projects,profileComplete,onChanged,onGoTo
   async function load(){
     const result = await fetchToolkitData();
     setGithub(result.githubUsername);
-    setCareerTrack(result.careerTrack);
     setExperiences(result.experiences);
     setCertificates(result.certificates);
   }
@@ -58,7 +55,6 @@ export default function CareerToolkit({projects,profileComplete,onChanged,onGoTo
     fetchToolkitData().then((result) => {
       if (!active) return;
       setGithub(result.githubUsername);
-      setCareerTrack(result.careerTrack);
       setExperiences(result.experiences);
       setCertificates(result.certificates);
     });
@@ -131,7 +127,7 @@ export default function CareerToolkit({projects,profileComplete,onChanged,onGoTo
       contribution:"Add what you personally built or changed before publishing this project.",
       tools:repo.language?[repo.language]:[],
       repo_link:repo.url,
-      career_track:careerTrack||null,
+      career_track:null,
       project_type:"GitHub project",
       status:"in_progress",
       source:"github",
@@ -181,7 +177,7 @@ export default function CareerToolkit({projects,profileComplete,onChanged,onGoTo
     </section>
 
     <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="eyebrow">GitHub import</p><h2 className="mt-2 text-2xl font-black">Bring a repository into SkillSync</h2><p className="mt-2 text-sm text-slate-500">Each repository can only be imported once. After import, SkillSync opens Projects & evidence so you can review the career direction and describe your personal contribution.</p>
+      <p className="eyebrow">GitHub import</p><h2 className="mt-2 text-2xl font-black">Bring a repository into SkillSync</h2><p className="mt-2 text-sm text-slate-500">Each repository can only be imported once. GitHub does not decide your career direction for you, so imported drafts start unclassified. SkillSync then opens Projects & evidence so you can choose the correct direction and describe your personal contribution.</p>
       <div className="mt-4 flex gap-2"><input className="field" value={github} onChange={e=>setGithub(e.target.value)} placeholder="GitHub username"/><button onClick={findRepos} className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white">{loadingRepos?"Loading…":"Find repos"}</button></div>
       {repos.length?<div className="mt-4 grid gap-3 md:grid-cols-2">{repos.map(repo=><div key={repo.id} className="rounded-2xl border border-slate-200 p-4"><p className="font-black">{repo.name}</p><p className="mt-1 text-xs text-slate-500">{repo.description||"No GitHub description"}{repo.language?" · "+repo.language:""}</p><button
   onClick={()=>importRepo(repo)}
