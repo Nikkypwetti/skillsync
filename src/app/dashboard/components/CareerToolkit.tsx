@@ -4,31 +4,40 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { Certificate, Experience, Project } from "@/types";
 
-type Props = { projects: Project[]; profileComplete: number; onChanged:()=>void|Promise<void> };
+type Repo = { id:number; name:string; url:string; description:string|null; language:string|null; stars:number };
+type Props = {
+  projects: Project[];
+  profileComplete: number;
+  onChanged:()=>void|Promise<void>;
+  onGoToProjects:()=>void;
+};
 
 async function fetchToolkitData() {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) {
-    return { githubUsername: "", experiences: [] as Experience[], certificates: [] as Certificate[] };
+    return { githubUsername: "", careerTrack: "", experiences: [] as Experience[], certificates: [] as Certificate[] };
   }
 
   const [profileResult, experienceResult, certificateResult] = await Promise.all([
-    supabase.from("profiles").select("github_username").eq("id",auth.user.id).maybeSingle(),
+    supabase.from("profiles").select("github_username,career_track").eq("id",auth.user.id).maybeSingle(),
     supabase.from("experiences").select("*").eq("user_id",auth.user.id).order("created_at",{ascending:false}),
     supabase.from("certificates").select("*").eq("user_id",auth.user.id).order("created_at",{ascending:false}),
   ]);
 
   return {
     githubUsername: profileResult.data?.github_username || "",
+    careerTrack: profileResult.data?.career_track || "",
     experiences: (experienceResult.data || []) as Experience[],
     certificates: (certificateResult.data || []) as Certificate[],
   };
 }
 
-export default function CareerToolkit({projects,profileComplete,onChanged}:Props){
+export default function CareerToolkit({projects,profileComplete,onChanged,onGoToProjects}:Props){
   const [github,setGithub]=useState("");
-  const [repos,setRepos]=useState<Array<{id:number;name:string;url:string;description:string|null;language:string|null;stars:number}>>([]);
+  const [repos,setRepos]=useState<Repo[]>([]);
   const [loadingRepos,setLoadingRepos]=useState(false);
+  const [importingRepoId,setImportingRepoId]=useState<number|null>(null);
+  const [careerTrack,setCareerTrack]=useState("");
   const [experiences,setExperiences]=useState<Experience[]>([]);
   const [certificates,setCertificates]=useState<Certificate[]>([]);
   const [experience,setExperience]=useState({role:"",organization:"",description:""});
@@ -38,6 +47,7 @@ export default function CareerToolkit({projects,profileComplete,onChanged}:Props
   async function load(){
     const result = await fetchToolkitData();
     setGithub(result.githubUsername);
+    setCareerTrack(result.careerTrack);
     setExperiences(result.experiences);
     setCertificates(result.certificates);
   }
@@ -48,6 +58,7 @@ export default function CareerToolkit({projects,profileComplete,onChanged}:Props
     fetchToolkitData().then((result) => {
       if (!active) return;
       setGithub(result.githubUsername);
+      setCareerTrack(result.careerTrack);
       setExperiences(result.experiences);
       setCertificates(result.certificates);
     });
@@ -75,21 +86,65 @@ export default function CareerToolkit({projects,profileComplete,onChanged}:Props
     if(auth.user)await supabase.from("profiles").update({github_username:github.trim()}).eq("id",auth.user.id);
   }
 
-  async function importRepo(repo:{name:string;url:string;description:string|null;language:string|null}){
-    const {data:auth}=await supabase.auth.getUser(); if(!auth.user)return;
+  async function importRepo(repo:Repo){
+    if(importingRepoId!==null)return;
+    setImportingRepoId(repo.id);
+    setMessage(null);
+
+    const {data:auth}=await supabase.auth.getUser();
+    if(!auth.user){setImportingRepoId(null);return;}
+
+    const alreadyInWorkspace = projects.find(project=>project.repo_link===repo.url);
+    if(alreadyInWorkspace){
+      setMessage(repo.name+" is already in your project workspace. Opening Projects & evidence instead of importing another copy.");
+      setImportingRepoId(null);
+      onGoToProjects();
+      return;
+    }
+
+    const {data:existing,error:lookupError}=await supabase
+      .from("projects")
+      .select("id")
+      .eq("user_id",auth.user.id)
+      .eq("repo_link",repo.url)
+      .limit(1);
+
+    if(lookupError){
+      setImportingRepoId(null);
+      setMessage(lookupError.message);
+      return;
+    }
+
+    if(existing?.length){
+      setImportingRepoId(null);
+      setMessage(repo.name+" is already imported. Opening Projects & evidence.");
+      await onChanged();
+      onGoToProjects();
+      return;
+    }
+
     const {error}=await supabase.from("projects").insert({
-      user_id:auth.user.id,title:repo.name,
+      user_id:auth.user.id,
+      title:repo.name,
       challenge:repo.description||"Imported from GitHub. Add the problem this repository solves.",
       description:repo.description||null,
       contribution:"Add what you personally built or changed before publishing this project.",
       tools:repo.language?[repo.language]:[],
-      repo_link:repo.url,career_track:"Software Development",
-      project_type:"GitHub project",status:"in_progress",source:"github",
-      public:false,featured:false,
+      repo_link:repo.url,
+      career_track:careerTrack||null,
+      project_type:"GitHub project",
+      status:"in_progress",
+      source:"github",
+      public:false,
+      featured:false,
     });
+
+    setImportingRepoId(null);
     if(error){setMessage(error.message);return;}
-    setMessage(repo.name+" imported as a private in-progress project. Edit it to confirm your contribution before publishing.");
+
+    setMessage(repo.name+" imported once as a private in-progress project. Opening Projects & evidence so you can review it.");
     await onChanged();
+    onGoToProjects();
   }
 
   async function addExperience(e:React.FormEvent){
@@ -126,9 +181,19 @@ export default function CareerToolkit({projects,profileComplete,onChanged}:Props
     </section>
 
     <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="eyebrow">GitHub import</p><h2 className="mt-2 text-2xl font-black">Bring a repository into SkillSync</h2>
+      <p className="eyebrow">GitHub import</p><h2 className="mt-2 text-2xl font-black">Bring a repository into SkillSync</h2><p className="mt-2 text-sm text-slate-500">Each repository can only be imported once. After import, SkillSync opens Projects & evidence so you can review the career direction and describe your personal contribution.</p>
       <div className="mt-4 flex gap-2"><input className="field" value={github} onChange={e=>setGithub(e.target.value)} placeholder="GitHub username"/><button onClick={findRepos} className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white">{loadingRepos?"Loading…":"Find repos"}</button></div>
-      {repos.length?<div className="mt-4 grid gap-3 md:grid-cols-2">{repos.map(repo=><div key={repo.id} className="rounded-2xl border border-slate-200 p-4"><p className="font-black">{repo.name}</p><p className="mt-1 text-xs text-slate-500">{repo.description||"No GitHub description"}{repo.language?" · "+repo.language:""}</p><button onClick={()=>importRepo(repo)} className="mt-3 text-xs font-black text-indigo-700">Import as draft →</button></div>)}</div>:null}
+      {repos.length?<div className="mt-4 grid gap-3 md:grid-cols-2">{repos.map(repo=><div key={repo.id} className="rounded-2xl border border-slate-200 p-4"><p className="font-black">{repo.name}</p><p className="mt-1 text-xs text-slate-500">{repo.description||"No GitHub description"}{repo.language?" · "+repo.language:""}</p><button
+  onClick={()=>importRepo(repo)}
+  disabled={importingRepoId!==null || projects.some(project=>project.repo_link===repo.url)}
+  className="mt-3 text-xs font-black text-indigo-700 disabled:cursor-not-allowed disabled:text-slate-400"
+>
+  {projects.some(project=>project.repo_link===repo.url)
+    ? "Already imported"
+    : importingRepoId===repo.id
+      ? "Importing…"
+      : "Import as draft →"}
+</button></div>)}</div>:null}
     </section>
 
     <section className="grid gap-6 lg:grid-cols-2">
