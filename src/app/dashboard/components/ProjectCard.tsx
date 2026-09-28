@@ -88,6 +88,23 @@ export default function ProjectCard({
   const [busy, setBusy] = useState(false);
   const theme = getTheme(project.career_track);
 
+  async function updateStatus(nextStatus: Project["status"]) {
+    setBusy(true);
+    const { error } = await supabase
+      .from("projects")
+      .update({ status: nextStatus, updated_at: new Date().toISOString() })
+      .eq("id", project.id)
+      .eq("user_id", project.user_id);
+    setBusy(false);
+
+    if (error) {
+      window.alert(error.message);
+      return;
+    }
+
+    await onChanged();
+  }
+
   async function reviewSkill(skill: ProjectSkill, status: "confirmed" | "dismissed") {
     const { error } = await supabase.from("project_skill_reviews").upsert({
       project_id: project.id,
@@ -213,6 +230,17 @@ export default function ProjectCard({
             >
               {project.public ? "Published" : "Private"}
             </span>
+            <select
+              value={project.status}
+              disabled={busy}
+              onChange={(e) => updateStatus(e.target.value as Project["status"])}
+              aria-label={`Change status for ${project.title}`}
+              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-black text-slate-600 disabled:opacity-50"
+            >
+              <option value="in_progress">In progress</option>
+              <option value="completed">Completed</option>
+              <option value="archived">Archived</option>
+            </select>
             <button
               type="button"
               disabled={busy}
@@ -299,7 +327,9 @@ export default function ProjectCard({
               <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                 Demonstrated capabilities
               </p>
-              <span className="text-[10px] font-semibold text-slate-400">Review detected skills: ✓ confirm · × remove</span>
+              <span className="text-[10px] font-semibold text-slate-400">
+                Levels are calculated from project evidence, so Developing/Practiced/Proficient cannot be manually selected. ✓ confirms a skill; × removes an incorrect one.
+              </span>
               {skills.length ? (
                 <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-black text-indigo-700">
                   {skills.length}
