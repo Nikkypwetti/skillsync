@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { levelFromScore } from "@/lib/evidence";
 import type { Profile, Project, ProjectAsset, ProjectSkill } from "@/types";
 
 export default function PortfolioPage() {
@@ -68,19 +69,36 @@ export default function PortfolioPage() {
   },[username]);
 
   const capabilityMap=useMemo(()=>{
-    const map=new Map<string,{name:string;category:string;level:string;score:number;count:number}>();
+    const map=new Map<string,{name:string;category:string;score:number;count:number;rationale:string|null}>();
+
     for(const skill of skills){
       const publicProject=projects.some(project=>project.id===skill.project_id);
       if(!publicProject)continue;
+
       const key=skill.name.toLowerCase();
       const existing=map.get(key);
-      if(!existing)map.set(key,{name:skill.name,category:skill.category||"General",level:skill.evidence_level,score:skill.evidence_score,count:1});
-      else{
+
+      if(!existing){
+        map.set(key,{
+          name:skill.name,
+          category:skill.category||"General",
+          score:skill.evidence_score,
+          count:1,
+          rationale:skill.rationale,
+        });
+      }else{
         existing.count+=1;
-        if(skill.evidence_score>existing.score){existing.score=skill.evidence_score;existing.level=skill.evidence_level;}
+        if(skill.evidence_score>existing.score){
+          existing.score=skill.evidence_score;
+          existing.rationale=skill.rationale;
+        }
       }
     }
-    return Array.from(map.values()).sort((a,b)=>b.score-a.score);
+
+    return Array.from(map.values()).map(skill=>{
+      const aggregateScore=Math.min(100,skill.score+Math.min(12,(skill.count-1)*4));
+      return {...skill,score:aggregateScore,level:levelFromScore(aggregateScore)};
+    }).sort((a,b)=>b.score-a.score);
   },[skills,projects]);
 
   if(loading)return <main className="min-h-screen bg-slate-950 p-8 text-white">Building portfolio…</main>;
@@ -173,7 +191,7 @@ export default function PortfolioPage() {
 
                   {project.tools?.length?<div className="mt-5 flex flex-wrap gap-2">{project.tools.map(tool=><span key={tool} className="rounded-lg bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-300">{tool}</span>)}</div>:null}
 
-                  {projectSkills.length?<div className="mt-5 border-t border-white/10 pt-5"><p className="text-[11px] font-black uppercase tracking-[.18em] text-slate-500">Skills demonstrated</p><div className="mt-3 flex flex-wrap gap-2">{projectSkills.map(skill=><span key={skill.id} className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs font-bold text-violet-200">{skill.name} · {skill.evidence_level}</span>)}</div></div>:null}
+                  {projectSkills.length?<div className="mt-5 border-t border-white/10 pt-5"><p className="text-[11px] font-black uppercase tracking-[.18em] text-slate-500">Skills demonstrated</p><div className="mt-3 flex flex-wrap gap-2">{[...projectSkills].sort((a,b)=>b.evidence_score-a.evidence_score).map(skill=><span key={skill.id} title={skill.rationale||undefined} className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs font-bold text-violet-200">{skill.name} · {skill.evidence_level}</span>)}</div></div>:null}
 
                   {projectAssets.length ? (
                     <div className="mt-5 border-t border-white/10 pt-5">
@@ -196,11 +214,19 @@ export default function PortfolioPage() {
         </section>
 
         <section className="mt-12 rounded-[2rem] border border-white/10 bg-white/[.035] p-7 sm:p-8">
-          <p className="text-xs font-black uppercase tracking-[.22em] text-violet-300">Capability map</p>
-          <h2 className="mt-2 text-3xl font-black">Skills backed by project evidence</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">These levels come from documented project work rather than a self-rated confidence slider.</p>
+          <p className="text-xs font-black uppercase tracking-[.22em] text-violet-300">
+            {projects.length > 1 ? "Capability map" : "Evidence summary"}
+          </p>
+          <h2 className="mt-2 text-3xl font-black">
+            {projects.length > 1 ? "Skills strengthened across your projects" : "What this first project proves most strongly"}
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+            {projects.length > 1
+              ? "Repeated evidence across different projects strengthens a capability over time."
+              : "As you add more projects, SkillSync will compare repeated evidence and strengthen capabilities that appear consistently."}
+          </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {capabilityMap.length?capabilityMap.map(skill=><div key={skill.name} className="rounded-2xl border border-white/10 bg-black/20 p-4"><div className="flex items-center justify-between gap-3"><span className="font-black">{skill.name}</span><span className="text-xs font-black text-violet-300">{skill.level}</span></div><p className="mt-2 text-xs text-slate-500">{skill.count} {skill.count===1?"project":"projects"} supporting this capability</p></div>):<p className="text-sm text-slate-500">Skill evidence will appear as projects are added.</p>}
+            {capabilityMap.length?capabilityMap.slice(0,projects.length>1?capabilityMap.length:3).map(skill=><div key={skill.name} className="rounded-2xl border border-white/10 bg-black/20 p-4"><div className="flex items-center justify-between gap-3"><span className="font-black">{skill.name}</span><span className="text-xs font-black text-violet-300">{skill.level}</span></div><p className="mt-2 text-xs text-slate-500">{projects.length>1?skill.count+" "+(skill.count===1?"project":"projects")+" supporting this capability":skill.rationale||"Backed by this project evidence."}</p></div>):<p className="text-sm text-slate-500">Skill evidence will appear as projects are added.</p>}
           </div>
         </section>
 

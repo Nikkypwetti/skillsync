@@ -250,12 +250,15 @@ for each row execute procedure public.handle_new_user();
 create or replace function public.refresh_project_skill_evidence()
 returns trigger
 language plpgsql
-security definer set search_path = public
+security definer
+set search_path = public
 as $$
 declare
-  project_text text;
-  base_score integer;
-  level_name text;
+  tools_text text;
+  contribution_text text;
+  context_text text;
+  outcome_text text;
+  asset_count integer;
 begin
   delete from public.project_skills where project_id = new.id;
 
@@ -263,61 +266,162 @@ begin
     return new;
   end if;
 
-  project_text := lower(
-    coalesce(new.title,'') || ' ' || coalesce(new.challenge,'') || ' ' ||
-    coalesce(new.contribution,'') || ' ' || coalesce(new.outcome,'') || ' ' ||
-    coalesce(new.role,'') || ' ' || coalesce(array_to_string(new.tools,' '),'')
+  tools_text := lower(coalesce(array_to_string(new.tools, ' '), ''));
+  contribution_text := lower(coalesce(new.contribution, ''));
+  context_text := lower(
+    coalesce(new.title, '') || ' ' ||
+    coalesce(new.role, '') || ' ' ||
+    coalesce(new.challenge, '')
   );
+  outcome_text := lower(coalesce(new.outcome, ''));
 
-  base_score := least(100, 38
-    + least(20,char_length(coalesce(new.contribution,''))/35)
-    + least(10,char_length(coalesce(new.outcome,''))/45)
-    + least(12,coalesce(array_length(new.tools,1),0)*2)
-    + case when new.repo_link is not null then 5 else 0 end
-    + case when new.live_url is not null then 5 else 0 end
-    + case when new.evidence_url is not null then 5 else 0 end);
+  select count(*)::integer
+  into asset_count
+  from public.project_assets
+  where project_id = new.id;
 
-  level_name := case
-    when base_score >= 85 then 'Advanced'
-    when base_score >= 65 then 'Proficient'
-    when base_score >= 45 then 'Practiced'
-    when base_score >= 25 then 'Developing'
-    else 'Exploring'
-  end;
-
-  insert into public.project_skills(project_id,user_id,name,category,evidence_score,evidence_level,rationale)
-  select new.id,new.user_id,x.name,x.category,base_score,level_name,
-    'Derived from the completed project description, tools used, outcomes, and linked evidence.'
+  insert into public.project_skills (
+    project_id,
+    user_id,
+    name,
+    category,
+    evidence_score,
+    evidence_level,
+    rationale
+  )
+  select
+    new.id,
+    new.user_id,
+    scored.name,
+    scored.category,
+    scored.score,
+    case
+      when scored.score >= 90 then 'Advanced'
+      when scored.score >= 75 then 'Proficient'
+      when scored.score >= 50 then 'Practiced'
+      when scored.score >= 30 then 'Developing'
+      else 'Exploring'
+    end,
+    concat_ws(
+      '; ',
+      case when scored.direct_tool then 'Directly listed in project tools' end,
+      case when scored.contribution_match then 'Demonstrated in the hands-on contribution' end,
+      case when scored.context_match then 'Supported by the project context' end,
+      case when scored.outcome_match then 'Reflected in the project outcome' end,
+      case when scored.proof_bonus > 0 then 'Supported by linked or uploaded evidence' end
+    )
   from (
-    values
-      ('Workflow Automation','Automation',array['workflow','automation','webhook']),
-      ('API Integration','Technical',array['api','integration','webhook']),
-      ('CRM Operations','CRM & RevOps',array['crm','pipeline','deal stage']),
-      ('Lead Management','CRM & RevOps',array['lead','qualification','routing']),
-      ('Reporting & Analytics','Data',array['dashboard','report','analytics','kpi']),
-      ('Executive Support','Virtual Assistance',array['executive assistant','executive support','calendar','meeting']),
-      ('Inbox Management','Virtual Assistance',array['inbox','email management','email triage','gmail']),
-      ('Calendar Management','Virtual Assistance',array['calendar','scheduling','appointment']),
-      ('Research','Virtual Assistance',array['research','market research','web research']),
-      ('Customer Support','Customer Operations',array['customer support','customer service','ticket','booking']),
-      ('Project Coordination','Project Operations',array['project coordination','deadline','task management','milestone']),
-      ('Process Improvement','Operations',array['process improvement','streamline','efficiency']),
-      ('n8n','Automation',array['n8n']),
-      ('HubSpot','CRM & RevOps',array['hubspot']),
-      ('Salesforce','CRM & RevOps',array['salesforce']),
-      ('Airtable','Productivity',array['airtable']),
-      ('Notion','Productivity',array['notion']),
-      ('React','Development',array['react']),
-      ('Next.js','Development',array['next.js','nextjs']),
-      ('TypeScript','Development',array['typescript']),
-      ('JavaScript','Development',array['javascript']),
-      ('PostgreSQL','Development',array['postgresql','postgres','supabase']),
-      ('Docker','Cloud & DevOps',array['docker'])
-  ) as x(name,category,terms)
-  where exists (select 1 from unnest(x.terms) term where project_text like '%' || term || '%')
-  on conflict(project_id,name) do update
-  set category=excluded.category,evidence_score=excluded.evidence_score,
-      evidence_level=excluded.evidence_level,rationale=excluded.rationale;
+    select
+      matched.name,
+      matched.category,
+      matched.direct_tool,
+      matched.contribution_match,
+      matched.context_match,
+      matched.outcome_match,
+      matched.proof_bonus,
+      least(
+        100,
+        20
+        + case when matched.direct_tool then 25 else 0 end
+        + case when matched.contribution_match then 20 else 0 end
+        + case when matched.context_match then 10 else 0 end
+        + case when matched.outcome_match then 5 else 0 end
+        + least(8, char_length(contribution_text) / 35)
+        + matched.proof_bonus
+      )::integer as score
+    from (
+      select
+        x.name,
+        x.category,
+        exists (
+          select 1 from unnest(x.tool_terms) term
+          where tools_text like '%' || term || '%'
+        ) as direct_tool,
+        exists (
+          select 1 from unnest(x.terms) term
+          where contribution_text like '%' || term || '%'
+        ) as contribution_match,
+        exists (
+          select 1 from unnest(x.terms) term
+          where context_text like '%' || term || '%'
+        ) as context_match,
+        exists (
+          select 1 from unnest(x.terms) term
+          where outcome_text like '%' || term || '%'
+        ) as outcome_match,
+        (
+          case when new.repo_link is not null then 3 else 0 end
+          + case when new.live_url is not null then 3 else 0 end
+          + case when new.evidence_url is not null then 3 else 0 end
+          + least(6, asset_count * 2)
+        )::integer as proof_bonus
+      from (
+        values
+          ('Workflow Automation','Automation',
+            array['workflow','automation','automated','routing','webhook','trigger'],
+            array['n8n','make.com','make','zapier','workflow automation']),
+          ('API Integration','Technical',
+            array['api','webhook','integration','rest','graphql'],
+            array['api integration','rest api','graphql','webhook']),
+          ('AI Integration','AI',
+            array['groq','openai','claude','gemini','llm','ai model','artificial intelligence'],
+            array['groq ai','groq','openai','claude','gemini','llm','ai integration']),
+          ('CRM Operations','CRM & RevOps',
+            array['crm','pipeline','deal stage','lead status','contact management'],
+            array['hubspot','salesforce','crm']),
+          ('Lead Management','CRM & RevOps',
+            array['lead','qualification','lead routing','routing','prospect'],
+            array['lead management','lead routing','lead qualification']),
+          ('Reporting & Analytics','Data',
+            array['dashboard','report','analytics','forecast','kpi','metrics'],
+            array['power bi','tableau','looker','reporting','analytics']),
+          ('Executive Support','Virtual Assistance',
+            array['executive support','executive assistant','calendar','meeting','scheduling'],
+            array['executive support','executive assistant']),
+          ('Inbox Management','Virtual Assistance',
+            array['inbox','email management','email triage','gmail'],
+            array['gmail','outlook','email management']),
+          ('Calendar Management','Virtual Assistance',
+            array['calendar','scheduling','appointment','meeting coordination'],
+            array['google calendar','calendar management','scheduling']),
+          ('Research','Virtual Assistance',
+            array['research','market research','web research','competitor research'],
+            array['research']),
+          ('Customer Support','Customer Operations',
+            array['customer support','customer service','ticket','inquiry','booking'],
+            array['customer support','zendesk','intercom','freshdesk']),
+          ('Project Coordination','Project Operations',
+            array['project coordination','deadline','task management','milestone','project plan'],
+            array['clickup','asana','trello','monday.com','project coordination']),
+          ('Process Improvement','Operations',
+            array['process improvement','streamline','efficiency','optimize','standardize'],
+            array['process improvement']),
+          ('n8n','Automation',array['n8n'],array['n8n']),
+          ('HubSpot','CRM & RevOps',array['hubspot'],array['hubspot']),
+          ('Salesforce','CRM & RevOps',array['salesforce'],array['salesforce']),
+          ('Google Sheets','Productivity',array['google sheets','spreadsheet'],array['google sheets','sheets']),
+          ('Airtable','Productivity',array['airtable'],array['airtable']),
+          ('Notion','Productivity',array['notion'],array['notion']),
+          ('React','Development',array['react'],array['react']),
+          ('Next.js','Development',array['next.js','nextjs'],array['next.js','nextjs']),
+          ('TypeScript','Development',array['typescript'],array['typescript']),
+          ('JavaScript','Development',array['javascript'],array['javascript']),
+          ('PostgreSQL','Development',array['postgresql','postgres','supabase'],array['postgresql','postgres','supabase']),
+          ('Docker','Cloud & DevOps',array['docker','container'],array['docker'])
+      ) as x(name, category, terms, tool_terms)
+    ) as matched
+    where
+      matched.direct_tool
+      or matched.contribution_match
+      or matched.context_match
+      or matched.outcome_match
+  ) as scored
+  on conflict (project_id, name) do update
+  set
+    category = excluded.category,
+    evidence_score = excluded.evidence_score,
+    evidence_level = excluded.evidence_level,
+    rationale = excluded.rationale;
 
   return new;
 end;
@@ -325,6 +429,31 @@ $$;
 
 drop trigger if exists project_skill_evidence_refresh on public.projects;
 create trigger project_skill_evidence_refresh
-after insert or update of title,challenge,contribution,outcome,role,tools,repo_link,live_url,evidence_url
+after insert or update
 on public.projects
 for each row execute function public.refresh_project_skill_evidence();
+
+create or replace function public.touch_project_after_asset_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  target_project_id uuid;
+begin
+  target_project_id := coalesce(new.project_id, old.project_id);
+
+  update public.projects
+  set updated_at = now()
+  where id = target_project_id;
+
+  return coalesce(new, old);
+end;
+$$;
+
+drop trigger if exists project_asset_evidence_refresh on public.project_assets;
+create trigger project_asset_evidence_refresh
+after insert or update or delete
+on public.project_assets
+for each row execute function public.touch_project_after_asset_change();
