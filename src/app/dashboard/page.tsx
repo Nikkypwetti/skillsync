@@ -9,6 +9,7 @@ import { levelFromScore } from "@/lib/evidence";
 import ProjectForm from "./components/ProjectForm";
 import ProjectCard from "./components/ProjectCard";
 import ProfileForm from "./components/ProfileForm";
+import CareerToolkit from "./components/CareerToolkit";
 import type { Project, ProjectAsset, ProjectSkill } from "@/types";
 
 type DashboardData = {
@@ -53,7 +54,7 @@ async function fetchDashboardData(): Promise<DashboardData> {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData>({ projects: [], projectSkills: [], projectAssets: [], name: "there", username: null, profileComplete: 0, error: null });
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"projects" | "profile">("projects");
+  const [tab, setTab] = useState<"projects" | "profile" | "career">("projects");
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   const refresh = useCallback(async () => {
@@ -145,6 +146,7 @@ export default function DashboardPage() {
           <div className="motion-fade-up motion-delay-2 mt-8 flex w-fit rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-sm backdrop-blur">
             <button onClick={()=>setTab("projects")} className={tab==="projects"?"tab-active":"tab-idle"}>Projects & evidence</button>
             <button onClick={()=>setTab("profile")} className={tab==="profile"?"tab-active":"tab-idle"}>Portfolio profile</button>
+            <button onClick={()=>setTab("career")} className={tab==="career"?"tab-active":"tab-idle"}>Career toolkit</button>
           </div>
 
           {tab === "projects" ? (
@@ -204,7 +206,7 @@ export default function DashboardPage() {
                 </aside>
               </section>
             </>
-          ) : (
+          ) : tab === "profile" ? (
             <section className="mt-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
               <div className="mb-7">
                 <p className="eyebrow">Professional identity</p>
@@ -212,6 +214,10 @@ export default function DashboardPage() {
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">Use a role direction that matches the work you want: developer, data analyst, automation specialist, RevOps, virtual assistant, customer operations, project coordinator, and more.</p>
               </div>
               <ProfileForm onSaved={refresh} />
+            </section>
+          ) : (
+            <section className="mt-6">
+              <CareerToolkit projects={data.projects} profileComplete={data.profileComplete} onChanged={refresh} />
             </section>
           )}
         </div>
