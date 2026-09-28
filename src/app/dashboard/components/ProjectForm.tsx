@@ -215,11 +215,9 @@ export default function ProjectForm({
     setMessage("Evidence file removed.");
   }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (step < 3) {
-      next();
+  async function saveProject() {
+    if (step !== 3) {
+      setMessage("Review Tools & proof before saving this project.");
       return;
     }
 
@@ -342,7 +340,7 @@ export default function ProjectForm({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-6">
+    <div className="space-y-6">
       <div className="grid grid-cols-3 gap-2">
         {steps.map(([number, label], index) => {
           const current = index + 1;
@@ -747,7 +745,8 @@ export default function ProjectForm({
             </button>
           ) : (
             <button
-              type="submit"
+              type="button"
+              onClick={saveProject}
               disabled={saving}
               className="project-submit-button rounded-xl bg-gradient-to-r from-violet-500 via-indigo-500 to-cyan-500 px-5 py-2.5 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -760,7 +759,7 @@ export default function ProjectForm({
           )}
         </div>
       </div>
-    </form>
+    </div>
   );
 }
 
