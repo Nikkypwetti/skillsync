@@ -5,6 +5,7 @@ import Link from "next/link";
 import AuthGuard from "@/components/AuthGuard";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/lib/supabaseClient";
+import { levelFromScore } from "@/lib/evidence";
 import ProjectForm from "./components/ProjectForm";
 import ProjectCard from "./components/ProjectCard";
 import ProfileForm from "./components/ProfileForm";
@@ -73,20 +74,38 @@ export default function DashboardPage() {
   }, []);
 
   const groupedSkills = useMemo(() => {
-    const map = new Map<string, { name: string; level: string; score: number; count: number }>();
+    const map = new Map<string, { name: string; score: number; count: number; rationale: string | null }>();
+
     for (const skill of data.projectSkills) {
       const key = skill.name.toLowerCase();
       const current = map.get(key);
-      if (!current) map.set(key, { name: skill.name, level: skill.evidence_level, score: skill.evidence_score, count: 1 });
-      else {
+
+      if (!current) {
+        map.set(key, {
+          name: skill.name,
+          score: skill.evidence_score,
+          count: 1,
+          rationale: skill.rationale,
+        });
+      } else {
         current.count += 1;
         if (skill.evidence_score > current.score) {
           current.score = skill.evidence_score;
-          current.level = skill.evidence_level;
+          current.rationale = skill.rationale;
         }
       }
     }
-    return Array.from(map.values()).sort((a,b)=>b.score-a.score);
+
+    return Array.from(map.values())
+      .map((skill) => {
+        const aggregateScore = Math.min(100, skill.score + Math.min(12, (skill.count - 1) * 4));
+        return {
+          ...skill,
+          score: aggregateScore,
+          level: levelFromScore(aggregateScore),
+        };
+      })
+      .sort((a,b)=>b.score-a.score);
   }, [data.projectSkills]);
 
   const publicProjects = data.projects.filter((project) => project.public).length;
